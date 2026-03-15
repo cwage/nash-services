@@ -9,6 +9,7 @@ from alltheapis_service import (
     find_nearby, fetch_records, get_service_meta,
     list_services, search_services, _format_record,
     get_pollable_services, fetch_service_raw, find_nearby_cached,
+    get_catalog_entry,
 )
 from dispatch_cache import ServicePoller, get_cached_events, get_cache_stats
 
@@ -56,6 +57,8 @@ def info(service_name):
     meta = get_service_meta(service_name, layer=layer)
     if meta is None:
         return jsonify({"error": f"Service '{service_name}' not found"}), 404
+    catalog = get_catalog_entry(service_name)
+    configured_date_field = catalog.get("date_field") if catalog else None
     return jsonify({
         "name": meta.name,
         "display_name": meta.display_name,
@@ -65,6 +68,7 @@ def info(service_name):
         "city_field": meta.city_field,
         "lat_field": meta.lat_field,
         "lng_field": meta.lng_field,
+        "date_field": configured_date_field,
         "date_fields": meta.date_fields,
         "fields": meta.fields,
         "poll": service_name in _pollable_names,
@@ -88,8 +92,8 @@ def nearby(service_name):
     date_from = request.args.get("from")  # e.g. 2020-12-25
     date_to = request.args.get("to")      # e.g. 2020-12-26
 
-    # Use cached data for polled services
-    if service_name in _pollable_names and not live_only:
+    # Use cached data for polled services (bypass cache when date filtering)
+    if service_name in _pollable_names and not live_only and not date_from and not date_to:
         cached = get_cached_events(service_name)
         if cached:
             result = find_nearby_cached(service_name, address,

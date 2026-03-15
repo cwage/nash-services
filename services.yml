@@ -6,6 +6,11 @@
 #   geocode  - service has address strings only; requires geocoding
 #   centroid - service has polygon/line geometry; uses shape centroid
 #
+# date_field:
+#   When set, the UI shows a date range picker and queries filter on this field.
+#   Only set this for services where the date represents a meaningful event time
+#   (not admin/audit metadata like created_date or last_edited_date).
+#
 # To add a new service, find its name via the ArcGIS catalog:
 #   curl -s "https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services?f=json"
 
@@ -17,12 +22,14 @@ services:
     category: Active / Real-Time
     mode: geocode
     address_field: Location
+    date_field: CallReceivedTime
     description: MNPD active dispatch calls
     poll: true
 
   - name: Nashville_Fire_Department_Active_Incidents_view
     category: Active / Real-Time
     mode: geocode
+    date_field: DispatchDateTime
     description: NFD active incidents
     poll: true
 
@@ -37,14 +44,9 @@ services:
     category: Active / Real-Time
     mode: centroid
     address_field: street
+    date_field: starttime
     description: Active road closures
     poll: true
-
-  - name: RoadClosures_public_b6790041823f4ecf96e7a54e50276f00
-    category: Active / Real-Time
-    mode: point
-    address_field: street
-    description: Road closures (point layer)
 
   - name: TransportationHazardReports_public
     category: Active / Real-Time
@@ -64,61 +66,57 @@ services:
     category: Police / Public Safety
     mode: point
     address_field: Incident_Location
+    date_field: Incident_Occurred
     description: MNPD crime incidents
 
   - name: MNPD_Calls_for_Service_2025_view
     category: Police / Public Safety
     mode: point
     address_field: Street_name
+    date_field: Call_Received
     description: Police calls for service (2025)
-
-  - name: Metro_Nashville_Police_Department_Calls_for_Service_2024
-    category: Police / Public Safety
-    mode: point
-    address_field: Street_name
-    description: Police calls for service (2024)
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2023
     category: Police / Public Safety
     mode: point
     address_field: Street_name
+    date_field: Call_Received
     description: Police calls for service (2023)
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2022
     category: Police / Public Safety
     mode: point
     address_field: Street_name
+    date_field: Call_Received
     description: Police calls for service (2022)
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2021
     category: Police / Public Safety
     mode: point
     address_field: Street_name
+    date_field: Call_Received
     description: Police calls for service (2021)
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2020
     category: Police / Public Safety
     mode: point
     address_field: Street_name
+    date_field: Call_Received
     description: Police calls for service (2020)
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2019
     category: Police / Public Safety
     mode: point
     address_field: Street_name
+    date_field: Call_Received
     description: Police calls for service (2019)
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2018
     category: Police / Public Safety
     mode: point
     address_field: Street_name
+    date_field: Call_Received
     description: Police calls for service (2018)
-
-  - name: Metro_Nashville_Police_Department_Calls_for_Service_2017
-    category: Police / Public Safety
-    mode: point
-    address_field: Street_name
-    description: Police calls for service (2017)
 
   - name: License_Plate_Reader_Locations
     category: Police / Public Safety
@@ -138,36 +136,42 @@ services:
     category: 311 / hubNashville
     mode: point
     address_field: Address
+    date_field: Date_Time_Opened
     description: 311 service requests (current year)
 
   - name: hubNashville_311_Service_Requests_2025_view
     category: 311 / hubNashville
     mode: point
     address_field: Address
+    date_field: Date_Time_Opened
     description: 311 service requests (2025)
 
   - name: hubNashville_311_Service_Requests_2024_view
     category: 311 / hubNashville
     mode: point
     address_field: Address
+    date_field: Date_Time_Opened
     description: 311 service requests (2024)
 
   - name: hubNashville_311_Service_Requests_2023_view
     category: 311 / hubNashville
     mode: point
     address_field: Address
+    date_field: Date_Time_Opened
     description: 311 service requests (2023)
 
   - name: hubNashville_311_Service_Requests_2022_view
     category: 311 / hubNashville
     mode: point
     address_field: Address
+    date_field: Date_Time_Opened
     description: 311 service requests (2022)
 
   - name: hubNashville_311_Service_Requests_2021_view
     category: 311 / hubNashville
     mode: point
     address_field: Address
+    date_field: Date_Time_Opened
     description: 311 service requests (2021)
 
   # === Traffic / Transportation ===
@@ -175,6 +179,7 @@ services:
   - name: Crash_Data_WFL1
     category: Traffic / Transportation
     mode: point
+    date_field: dateofcras
     description: Traffic crash data
 
   - name: Traffic_Calming_Projects_view
@@ -187,6 +192,7 @@ services:
     category: Traffic / Transportation
     mode: point
     address_field: street_name
+    date_field: _date
     description: Road damage reports (Winter 2026)
 
   - name: BCycle_Locations_view
@@ -218,16 +224,11 @@ services:
     address_field: OnStreet
     description: Curb ramp locations
 
-  - name: NDOT_Street_Sweeping_Schedule
-    category: Traffic / Transportation
-    mode: centroid
-    address_field: STREET
-    description: Street sweeping schedule
-
   - name: Roadway_Paving_Management_Projects
     category: Traffic / Transportation
     mode: centroid
     address_field: ProjectLocation
+    date_field: EstStartDate
     description: Roadway paving projects
 
   # === Permits / Development ===
@@ -236,53 +237,62 @@ services:
     category: Permits / Development
     mode: point
     address_field: Address
+    date_field: Date_Issued
     description: Building permits issued
 
   - name: Building_Permit_Applications_Feature_Layer_view
     category: Permits / Development
     mode: point
     address_field: Address
+    date_field: Date_Entered
     description: Building permit applications
 
   - name: Trade_Permits_View
     category: Permits / Development
     mode: point
     address_field: Address
+    date_field: Date_Issued
     description: Trade permits (electrical, mechanical, plumbing)
 
   - name: Active_Right-of-Way_Permits
     category: Permits / Development
     mode: point
     address_field: Onstreet
+    date_field: Initiated__Date
     description: Active right-of-way permits
 
   - name: Board_of_Zoning_Appeals_Cases_view
     category: Permits / Development
     mode: point
+    date_field: DATE_ACCEPTED
     description: Board of zoning appeals cases
 
   - name: Development_Tracker_Cases_view
     category: Permits / Development
     mode: point
     address_field: LOCATION_DESC
+    date_field: DATE_ACCEPTED
     description: Development tracker cases
 
   - name: PlanningDepartmentDevelopmentApplications_view
     category: Permits / Development
     mode: point
     address_field: Location
+    date_field: Date_Submitted
     description: Planning department applications
 
   - name: Residential_Short_Term_Rental_Permits_view
     category: Permits / Development
     mode: point
     address_field: Address
+    date_field: Date_Issued
     description: Short-term rental (Airbnb) permits
 
   - name: Beer_Permit_Locations_Feature_Layer_view
     category: Permits / Development
     mode: point
     address_field: Address
+    date_field: Date_Issued
     description: Beer permit locations
 
   - name: Registered_Professional_Contractors_view_2
@@ -297,6 +307,7 @@ services:
     category: Property / Housing
     mode: point
     address_field: Property_Address
+    date_field: Date_Received
     description: Property standards violations
 
   - name: Housing_Opportunities_WFL1
@@ -328,12 +339,14 @@ services:
     category: Historic
     mode: point
     address_field: LOCATION
+    date_field: DATE_ACCEPTED
     description: Historic commission permits
 
   - name: Metropolitan_Historic_Zoning_Commission_Permits_view
     category: Historic
     mode: point
     address_field: LOCATION
+    date_field: DATE_ACCEPTED
     description: Historic zoning commission permits
 
   - name: Historical_Markers_view
@@ -342,12 +355,6 @@ services:
     address_field: Location
     description: Historical markers
 
-  - name: Davidson_County_Cemetery_Survey_Table_view
-    category: Historic
-    mode: point
-    address_field: Street
-    description: Cemetery survey
-
   # === Parks / Public Spaces ===
 
   - name: Park_Points__view
@@ -355,12 +362,6 @@ services:
     mode: point
     address_field: Address
     description: Parks
-
-  - name: Parks_Trails_and_Trail_Features
-    category: Parks / Public Spaces
-    mode: point
-    address_field: Address
-    description: Parks, trails, and trail features
 
   - name: Metro_Art_in_Public_Places_view
     category: Parks / Public Spaces
@@ -441,12 +442,6 @@ services:
     address_field: Address
     description: Voting locations
 
-  - name: Early_Voting_Locations_View
-    category: Public Services
-    mode: point
-    address_field: ADDRESS
-    description: Early voting locations
-
   - name: Police_Precincts_view
     category: Public Services
     mode: point
@@ -463,6 +458,7 @@ services:
     category: Public Services
     mode: point
     address_field: user_event_location_name
+    date_field: event_date_1
     description: Downtown special events
 
   # === Infrastructure ===
@@ -470,12 +466,14 @@ services:
   - name: Capital_Projects_view
     category: Infrastructure
     mode: point
+    date_field: EstimatedStartDate
     description: Capital projects
 
   - name: Capital_Project_Management_System_view
     category: Infrastructure
     mode: point
     address_field: ProjectLocation
+    date_field: ActStartDate
     description: Capital project management
 
   - name: NDOTCapitalProjects_view
@@ -511,6 +509,7 @@ services:
   - name: Hail_Storms
     category: Environment
     mode: point
+    date_field: Date_Calc
     description: Hail storm data
 
   - name: Metro_Energy_Use_Intensity_Benchmarking_view
