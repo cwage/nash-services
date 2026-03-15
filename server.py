@@ -92,8 +92,8 @@ def nearby(service_name):
     date_from = request.args.get("from")  # e.g. 2020-12-25
     date_to = request.args.get("to")      # e.g. 2020-12-26
 
-    # Use cached data for polled services
-    if service_name in _pollable_names and not live_only:
+    # Use cached data for polled services (bypass cache when date filtering)
+    if service_name in _pollable_names and not live_only and not date_from and not date_to:
         cached = get_cached_events(service_name)
         if cached:
             result = find_nearby_cached(service_name, address,

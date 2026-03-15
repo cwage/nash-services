@@ -85,6 +85,12 @@ async function updateDateRange(preserveDates = false) {
         const info = await resp.json();
         if (!info.date_field) {
             dateRangeDiv.style.display = "none";
+            dateFromInput.value = "";
+            dateToInput.value = "";
+            dateFromInput.min = "";
+            dateFromInput.max = "";
+            dateToInput.min = "";
+            dateToInput.max = "";
             return;
         }
         servicesWithDates.add(service);
