@@ -12,6 +12,11 @@
         <h1>All The APIs</h1>
         <p class="subtitle">Nashville Open Data proximity search</p>
 
+        <div id="featured" class="control-group">
+            <label>Featured</label>
+            <div id="featured-list"></div>
+        </div>
+
         <div class="control-group">
             <label for="service-select">Dataset</label>
             <select id="service-select">
@@ -29,6 +34,17 @@
             <div class="radius-row">
                 <input type="range" id="radius-slider" min="0.25" max="10" step="0.25" value="2" />
                 <input type="number" id="radius-input" min="0.25" max="10" step="0.25" value="2" />
+            </div>
+        </div>
+
+        <div id="date-range" class="control-group" style="display:none">
+            <label>Date range</label>
+            <div class="date-row">
+                <button type="button" id="date-prev" class="date-nav" title="Previous period">&larr;</button>
+                <input type="datetime-local" id="date-from" />
+                <span class="date-sep">to</span>
+                <input type="datetime-local" id="date-to" />
+                <button type="button" id="date-next" class="date-nav" title="Next period">&rarr;</button>
             </div>
         </div>
 

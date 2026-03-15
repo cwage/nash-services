@@ -1,5 +1,17 @@
 const API = window.location.origin;
 
+// Featured presets — curated interesting visualizations
+const FEATURED = [
+    {
+        label: "2020 Christmas Bombing",
+        service: "Metro_Nashville_Police_Department_Calls_for_Service_2020",
+        address: "166 2nd Ave N, Nashville, TN",
+        radius: 2,
+        from: "2020-12-25T12:00",
+        to: "2020-12-25T14:00",
+    },
+];
+
 // Map setup - centered on Nashville
 const map = L.map("map").setView([36.16, -86.78], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -34,6 +46,9 @@ const serviceSelect = document.getElementById("service-select");
 const addressInput = document.getElementById("address-input");
 const radiusSlider = document.getElementById("radius-slider");
 const radiusInput = document.getElementById("radius-input");
+const dateRangeDiv = document.getElementById("date-range");
+const dateFromInput = document.getElementById("date-from");
+const dateToInput = document.getElementById("date-to");
 const searchBtn = document.getElementById("search-btn");
 const statusEl = document.getElementById("status");
 const resultsList = document.getElementById("results-list");
@@ -46,12 +61,109 @@ radiusInput.addEventListener("input", () => {
     radiusSlider.value = radiusInput.value;
 });
 
+// Track which services have date fields (populated on info fetch)
+const servicesWithDates = new Set();
+
 // Enable search when both service and address are filled
 function checkReady() {
     searchBtn.disabled = !serviceSelect.value || !addressInput.value.trim();
 }
-serviceSelect.addEventListener("change", checkReady);
+serviceSelect.addEventListener("change", () => {
+    checkReady();
+    updateDateRange();
+});
 addressInput.addEventListener("input", checkReady);
+
+async function updateDateRange(preserveDates = false) {
+    const service = serviceSelect.value;
+    if (!service) {
+        dateRangeDiv.style.display = "none";
+        return;
+    }
+    try {
+        const resp = await fetch(`${API}/info/${service}`);
+        const info = await resp.json();
+        if (!info.date_fields || info.date_fields.length === 0) {
+            dateRangeDiv.style.display = "none";
+            return;
+        }
+        servicesWithDates.add(service);
+        const dateField = info.date_fields[0];
+
+        // Query ArcGIS for min/max date
+        const statsUrl = `https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/${service}/FeatureServer/0/query?where=1%3D1&outStatistics=[{"statisticType":"min","onStatisticField":"${dateField}","outStatisticFieldName":"minDate"},{"statisticType":"max","onStatisticField":"${dateField}","outStatisticFieldName":"maxDate"}]&f=json`;
+        const statsResp = await fetch(statsUrl);
+        const statsData = await statsResp.json();
+        const stats = statsData.features?.[0]?.attributes;
+
+        if (stats && stats.minDate && stats.maxDate) {
+            const fmtLocal = (d) =>
+              d.getFullYear() + "-" +
+              String(d.getMonth() + 1).padStart(2, "0") + "-" +
+              String(d.getDate()).padStart(2, "0") + "T" +
+              String(d.getHours()).padStart(2, "0") + ":" +
+              String(d.getMinutes()).padStart(2, "0");
+            const minDate = fmtLocal(new Date(stats.minDate));
+            const maxDate = fmtLocal(new Date(stats.maxDate));
+            const minDay = minDate.split("T")[0];
+            const maxDay = maxDate.split("T")[0];
+            dateFromInput.min = minDate;
+            dateFromInput.max = maxDate;
+            dateToInput.min = minDate;
+            dateToInput.max = maxDate;
+            if (!preserveDates) {
+                if (!dateFromInput.value) dateFromInput.value = minDate;
+                if (!dateToInput.value) dateToInput.value = maxDate;
+            }
+            dateRangeDiv.querySelector("label").textContent =
+                `Date range (data: ${minDay} to ${maxDay})`;
+        }
+        dateRangeDiv.style.display = "";
+    } catch {
+        dateRangeDiv.style.display = "none";
+    }
+}
+
+// Date navigation — shift both dates by the current span
+function shiftDates(direction) {
+    const from = dateFromInput.value;
+    const to = dateToInput.value;
+    if (!from || !to) return;
+
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const spanMs = toDate - fromDate;
+    if (spanMs <= 0) return;
+
+    const shift = direction * spanMs;
+    const newFrom = new Date(fromDate.getTime() + shift);
+    const newTo = new Date(toDate.getTime() + shift);
+
+    // Format as local datetime (datetime-local inputs use local time, not UTC)
+    const fmt = (d) =>
+      d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0") + "T" +
+      String(d.getHours()).padStart(2, "0") + ":" +
+      String(d.getMinutes()).padStart(2, "0");
+    const newFromStr = fmt(newFrom);
+    const newToStr = fmt(newTo);
+
+    const min = dateFromInput.min;
+    const max = dateToInput.max;
+    if (min && newFromStr < min) return;
+    if (max && newToStr > max) return;
+
+    dateFromInput.value = newFromStr;
+    dateToInput.value = newToStr;
+
+    if (serviceSelect.value && addressInput.value.trim()) {
+        doSearch();
+    }
+}
+
+document.getElementById("date-prev").addEventListener("click", () => shiftDates(-1));
+document.getElementById("date-next").addEventListener("click", () => shiftDates(1));
 
 // Enter key triggers search
 addressInput.addEventListener("keydown", (e) => {
@@ -200,25 +312,68 @@ function summarizeRecord(record) {
     return parts.join(" - ") || "View details";
 }
 
+function buildSparkline(histogram) {
+    const container = document.createElement("div");
+    container.className = "sparkline";
+
+    const maxCount = Math.max(...histogram.map(b => b.count));
+    const barWidth = Math.max(2, Math.floor((320 - histogram.length) / histogram.length));
+
+    const barsDiv = document.createElement("div");
+    barsDiv.className = "sparkline-bars";
+
+    for (const bucket of histogram) {
+        const pct = (bucket.count / maxCount) * 100;
+        const bar = document.createElement("div");
+        bar.className = "sparkline-bar";
+        bar.style.height = `${Math.max(2, pct)}%`;
+        bar.style.width = `${barWidth}px`;
+        // Color intensity by count
+        const intensity = 0.3 + (bucket.count / maxCount) * 0.7;
+        bar.style.background = `rgba(74, 158, 255, ${intensity})`;
+        bar.title = `${bucket.label}: ${bucket.count}`;
+        barsDiv.appendChild(bar);
+    }
+
+    container.appendChild(barsDiv);
+
+    // Labels: first, middle, last
+    const labels = document.createElement("div");
+    labels.className = "sparkline-labels";
+    const first = histogram[0].label;
+    const last = histogram[histogram.length - 1].label;
+    labels.innerHTML = `<span>${first}</span><span>${last}</span>`;
+    container.appendChild(labels);
+
+    return container;
+}
+
 async function doSearch() {
     const service = serviceSelect.value;
     const address = addressInput.value.trim();
     const radius = parseFloat(radiusInput.value) || 2;
+    const dateFrom = dateFromInput.value || "";
+    const dateTo = dateToInput.value || "";
 
     if (!service || !address) return;
 
     clearMap();
     setStatus("Searching...", "loading");
     searchBtn.disabled = true;
-    pushSearchState(service, address, radius);
+    pushSearchState(service, address, radius, dateFrom, dateTo);
 
     const isPolled = pollableServices.has(service);
 
     try {
+        // Build nearby URL with optional date range
+        let nearbyUrl = `${API}/nearby/${service}?address=${encodeURIComponent(address)}&radius=${radius}&max=2000`;
+        if (dateFrom) nearbyUrl += `&from=${dateFrom}`;
+        if (dateTo) nearbyUrl += `&to=${dateTo}`;
+
         // Fetch field metadata and nearby results in parallel
         const [infoResp, nearbyResp] = await Promise.all([
             fetch(`${API}/info/${service}`),
-            fetch(`${API}/nearby/${service}?address=${encodeURIComponent(address)}&radius=${radius}&max=1000`),
+            fetch(nearbyUrl),
         ]);
 
         const info = await infoResp.json();
@@ -286,7 +441,46 @@ async function doSearch() {
             markers.push({ marker, record });
         }
 
-        // Fit map to show radius circle (and markers if any)
+        // Sector aggregate circles for records without precise location
+        // Use absolute scale so circles are comparable across time periods
+        const sectorMarkers = [];
+        if (data.sector_summary && data.sector_summary.length > 0) {
+            const maxSectorCount = Math.max(...data.sector_summary.map(s => s.count));
+            for (const sector of data.sector_summary) {
+                // Scale relative to max in this result set — makes dominant sector obvious
+                const relScale = sector.count / maxSectorCount;
+                // Radius: small sectors ~300m, dominant sector ~3000m
+                const circleRadius = 300 + relScale * relScale * 2700;
+                // Color: low counts = faded yellow, high counts = bright red-orange
+                const r = Math.round(230 + relScale * 25);
+                const g = Math.round(180 - relScale * 120);
+                const b = Math.round(50 - relScale * 30);
+                const color = `rgb(${r},${g},${b})`;
+
+                const sectorCircle = L.circle([sector.lat, sector.lng], {
+                    radius: circleRadius,
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.1 + relScale * 0.4,
+                    weight: 1.5 + relScale * 2,
+                });
+
+                sectorCircle.bindTooltip(
+                    `${sector.name} sector: ${sector.count} calls (no precise location)`,
+                    { direction: "top", offset: [0, -10] }
+                );
+                sectorCircle.bindPopup(
+                    `<strong>${sector.name} Sector</strong><br>` +
+                    `${sector.count} call(s) without precise location<br>` +
+                    `<em style="color:#999">Shown at sector centroid</em>`
+                );
+
+                sectorCircle.addTo(markersLayer);
+                sectorMarkers.push(sectorCircle);
+            }
+        }
+
+        // Fit map to radius circle and markers only (not distant sector circles)
         if (markers.length > 0) {
             const group = L.featureGroup([radiusCircle, ...markers.map(m => m.marker)]);
             map.fitBounds(group.getBounds().pad(0.1));
@@ -297,8 +491,36 @@ async function doSearch() {
         // Build status message
         const fetchedLabel = data.total_cached !== undefined
             ? `${data.total_cached} cached` : `${data.total_fetched} fetched`;
-        setStatus(`${data.count} result(s) found (${fetchedLabel})`);
+        let statusMsg = `${data.count} result(s) found (${fetchedLabel})`;
+        if (data.no_location > 0) {
+            const sectorCount = data.sector_summary
+                ? data.sector_summary.reduce((sum, s) => sum + s.count, 0) : 0;
+            statusMsg += ` · ${data.no_location} without location`;
+            if (sectorCount > 0) {
+                statusMsg += ` (${sectorCount} by sector)`;
+            }
+        }
+        setStatus(statusMsg);
         resultsList.innerHTML = "";
+
+        // Sector summary in sidebar
+        if (data.sector_summary && data.sector_summary.length > 0) {
+            const sectorDiv = document.createElement("div");
+            sectorDiv.className = "sector-summary";
+            sectorDiv.innerHTML = `<div class="sector-title">Calls by sector (no precise location)</div>`;
+            // Absolute scale: 200 calls = 100% bar width
+            for (const sector of data.sector_summary) {
+                const pct = Math.min(100, (sector.count / 200) * 100);
+                const row = document.createElement("div");
+                row.className = "sector-row";
+                row.innerHTML = `
+                    <span class="sector-name">${sector.name}</span>
+                    <div class="sector-bar-bg"><div class="sector-bar" style="width:${pct}%"></div></div>
+                    <span class="sector-count">${sector.count}</span>`;
+                sectorDiv.appendChild(row);
+            }
+            resultsList.appendChild(sectorDiv);
+        }
 
         // Legend for polled services
         if (isPolled && markers.length > 0) {
@@ -339,8 +561,10 @@ async function doSearch() {
 }
 
 // URL state: push search params into the URL so links are shareable
-function pushSearchState(service, address, radius) {
+function pushSearchState(service, address, radius, dateFrom, dateTo) {
     const params = new URLSearchParams({ service, address, radius });
+    if (dateFrom) params.set("from", dateFrom);
+    if (dateTo) params.set("to", dateTo);
     history.pushState(null, "", `?${params}`);
 }
 
@@ -349,6 +573,8 @@ function loadSearchFromURL() {
     const service = params.get("service");
     const address = params.get("address");
     const radius = params.get("radius");
+    const dateFrom = params.get("from");
+    const dateTo = params.get("to");
 
     if (service && address) {
         // Wait for services dropdown to populate, then set values and search
@@ -361,6 +587,9 @@ function loadSearchFromURL() {
                     radiusInput.value = radius;
                     radiusSlider.value = radius;
                 }
+                if (dateFrom) dateFromInput.value = dateFrom;
+                if (dateTo) dateToInput.value = dateTo;
+                updateDateRange(dateFrom || dateTo ? true : false);
                 checkReady();
                 doSearch();
             }
@@ -373,6 +602,51 @@ function loadSearchFromURL() {
 // Handle browser back/forward
 window.addEventListener("popstate", loadSearchFromURL);
 
+async function applyPreset(preset) {
+    // Wait for services dropdown to be populated
+    await new Promise((resolve) => {
+        const waitForServices = setInterval(() => {
+            if (serviceSelect.querySelector(`option[value="${preset.service}"]`)) {
+                clearInterval(waitForServices);
+                resolve();
+            }
+        }, 100);
+        setTimeout(() => { clearInterval(waitForServices); resolve(); }, 5000);
+    });
+
+    serviceSelect.value = preset.service;
+    addressInput.value = preset.address;
+    radiusInput.value = preset.radius;
+    radiusSlider.value = preset.radius;
+
+    // Get bounds from the dataset, then force preset dates
+    await updateDateRange(true);
+    // Force preset dates after updateDateRange completes
+    if (preset.from) dateFromInput.value = preset.from;
+    if (preset.to) dateToInput.value = preset.to;
+    dateRangeDiv.style.display = "";
+    checkReady();
+    doSearch();
+}
+
+function buildFeaturedList() {
+    const list = document.getElementById("featured-list");
+    for (const preset of FEATURED) {
+        const item = document.createElement("a");
+        item.className = "featured-item";
+        item.href = "#";
+        item.textContent = preset.label;
+        item.addEventListener("click", (e) => {
+            e.preventDefault();
+            // Clear any URL state so loadSearchFromURL doesn't interfere
+            history.replaceState(null, "", window.location.pathname);
+            applyPreset(preset);
+        });
+        list.appendChild(item);
+    }
+}
+
 // Init
 loadServices();
+buildFeaturedList();
 loadSearchFromURL();

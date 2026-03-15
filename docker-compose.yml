@@ -6,3 +6,15 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     user: "${UID:-1000}:${GID:-1000}"
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.50.0-noble
+    depends_on:
+      - api
+    working_dir: /tests
+    volumes:
+      - ./tests:/tests
+    environment:
+      - BASE_URL=http://api:5000
+    entrypoint: ["tail", "-f", "/dev/null"]
+    user: "${UID:-1000}:${GID:-1000}"
