@@ -13,7 +13,7 @@ jobs:
 
       - name: Start services
         run: |
-          mkdir -p data
+          mkdir -p data && chmod 777 data
           docker compose up -d --build
 
       - name: Wait for API to be healthy with cache populated
