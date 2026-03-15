@@ -18,15 +18,12 @@ jobs:
         run: |
           echo "Waiting for API and cache..."
           for i in $(seq 1 60); do
-            TOTAL=$(docker compose exec -T api python -c "
-          from dispatch_cache import get_cache_stats
-          print(get_cache_stats()['total'])
-          " 2>/dev/null || echo "0")
-            if [ "$TOTAL" -gt "0" ]; then
+            TOTAL=$(docker compose exec -T api python -c "from dispatch_cache import get_cache_stats; print(get_cache_stats()['total'])" 2>&1 || echo "0")
+            if [ "$TOTAL" -gt "0" ] 2>/dev/null; then
               echo "Cache populated with $TOTAL events"
               break
             fi
-            echo "  attempt $i: cache has $TOTAL events, waiting..."
+            echo "  attempt $i: $TOTAL"
             sleep 5
           done
 
