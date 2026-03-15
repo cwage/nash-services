@@ -540,10 +540,43 @@ async function doSearch() {
 
             const dist = record._distance_miles !== undefined
                 ? `<span class="result-distance">${record._distance_miles} mi</span> ` : "";
-            const summary = summarizeRecord(record);
-            const statusDot = isPolled && record._status
-                ? `<span class="legend-dot" style="background:${(STATUS_COLORS[record._status] || DEFAULT_COLOR).fill}"></span>` : "";
-            item.innerHTML = `${statusDot}${dist}<span class="result-summary">${summary}</span>`;
+            const hasStatusDot = isPolled && record._status;
+
+            // Build result item safely (no innerHTML for external data)
+            if (hasStatusDot) {
+                const dotSpan = document.createElement("span");
+                dotSpan.className = "legend-dot";
+                dotSpan.style.background = (STATUS_COLORS[record._status] || DEFAULT_COLOR).fill;
+                item.appendChild(dotSpan);
+            }
+            if (record._distance_miles !== undefined) {
+                const distSpan = document.createElement("span");
+                distSpan.className = "result-distance";
+                distSpan.textContent = `${record._distance_miles} mi`;
+                item.appendChild(distSpan);
+                item.appendChild(document.createTextNode(" "));
+            }
+            if (isPolled && record.IncidentTypeName) {
+                const incidentSpan = document.createElement("span");
+                incidentSpan.className = "result-incident";
+                incidentSpan.textContent = record.IncidentTypeName;
+                item.appendChild(incidentSpan);
+                const time = record.CallReceivedTime
+                    ? formatFieldValue("CallReceivedTime", record.CallReceivedTime)
+                    : (record._first_seen ? formatFieldValue("_first_seen", record._first_seen) : "");
+                if (time) {
+                    const timeSpan = document.createElement("span");
+                    timeSpan.className = "result-time";
+                    timeSpan.textContent = time;
+                    item.appendChild(document.createTextNode(" "));
+                    item.appendChild(timeSpan);
+                }
+            } else {
+                const summarySpan = document.createElement("span");
+                summarySpan.className = "result-summary";
+                summarySpan.textContent = summarizeRecord(record);
+                item.appendChild(summarySpan);
+            }
 
             item.addEventListener("click", () => {
                 map.setView([record._lat, record._lng], 16);

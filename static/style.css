@@ -163,6 +163,17 @@ button#search-btn:disabled {
     text-overflow: ellipsis;
 }
 
+.result-item .result-incident {
+    color: #e0e0e0;
+    font-weight: 600;
+}
+
+.result-item .result-time {
+    color: #888;
+    font-size: 0.85em;
+    margin-left: 4px;
+}
+
 #map {
     flex: 1;
     height: 100vh;
