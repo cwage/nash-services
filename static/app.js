@@ -540,10 +540,23 @@ async function doSearch() {
 
             const dist = record._distance_miles !== undefined
                 ? `<span class="result-distance">${record._distance_miles} mi</span> ` : "";
-            const summary = summarizeRecord(record);
             const statusDot = isPolled && record._status
                 ? `<span class="legend-dot" style="background:${(STATUS_COLORS[record._status] || DEFAULT_COLOR).fill}"></span>` : "";
-            item.innerHTML = `${statusDot}${dist}<span class="result-summary">${summary}</span>`;
+
+            // For polled services, show incident type + timestamp instead of generic summary
+            let displayText;
+            if (isPolled && record.IncidentTypeName) {
+                const incident = record.IncidentTypeName;
+                const time = record.CallReceivedTime
+                    ? formatFieldValue("CallReceivedTime", record.CallReceivedTime)
+                    : (record._first_seen ? formatFieldValue("_first_seen", record._first_seen) : "");
+                displayText = time
+                    ? `<span class="result-incident">${incident}</span> <span class="result-time">${time}</span>`
+                    : `<span class="result-incident">${incident}</span>`;
+            } else {
+                displayText = `<span class="result-summary">${summarizeRecord(record)}</span>`;
+            }
+            item.innerHTML = `${statusDot}${dist}${displayText}`;
 
             item.addEventListener("click", () => {
                 map.setView([record._lat, record._lng], 16);

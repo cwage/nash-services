@@ -5,6 +5,9 @@ services:
       - "5010:5000"
     environment:
       - PYTHONUNBUFFERED=1
+      - DISPATCH_CACHE_DB=/data/service_cache.db
+    volumes:
+      - ./data:/data
     user: "${UID:-1000}:${GID:-1000}"
 
   playwright:
