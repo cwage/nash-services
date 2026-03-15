@@ -22,14 +22,12 @@ services:
     category: Active / Real-Time
     mode: geocode
     address_field: Location
-    date_field: CallReceivedTime
     description: MNPD active dispatch calls
     poll: true
 
   - name: Nashville_Fire_Department_Active_Incidents_view
     category: Active / Real-Time
     mode: geocode
-    date_field: DispatchDateTime
     description: NFD active incidents
     poll: true
 
@@ -44,7 +42,6 @@ services:
     category: Active / Real-Time
     mode: centroid
     address_field: street
-    date_field: starttime
     description: Active road closures
     poll: true
 
