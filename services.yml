@@ -18,34 +18,40 @@ services:
     mode: geocode
     address_field: Location
     description: MNPD active dispatch calls
+    poll: true
 
   - name: Nashville_Fire_Department_Active_Incidents_view
     category: Active / Real-Time
     mode: geocode
     description: NFD active incidents
+    poll: true
 
   - name: Metro_Water_Services_Outages_Feature_Layer_view2
     category: Active / Real-Time
     mode: point
     address_field: Address
     description: Water service outages
+    poll: true
 
   - name: NERVE_Road_Closures_view
     category: Active / Real-Time
     mode: centroid
     address_field: street
     description: Active road closures
+    poll: true
 
   - name: RoadClosures_public_b6790041823f4ecf96e7a54e50276f00
     category: Active / Real-Time
     mode: point
     address_field: street
     description: Road closures (point layer)
+    poll: true
 
   - name: TransportationHazardReports_public
     category: Active / Real-Time
     mode: point
     description: Transportation hazard reports
+    poll: true
 
   - name: Warming_Stations_view
     category: Active / Real-Time
