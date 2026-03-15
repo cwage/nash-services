@@ -15,6 +15,20 @@ let searchMarker = null;
 // Field metadata for the current service (aliases, date fields)
 let currentFieldMeta = null;
 
+// Track which services are polled (for status-based coloring)
+const pollableServices = new Set();
+
+// Status -> color mapping (hot to cold)
+const STATUS_COLORS = {
+    live:   { color: "#e74c3c", fill: "#e74c3c", opacity: 0.85 },  // red
+    recent: { color: "#e67e22", fill: "#f39c12", opacity: 0.65 },  // orange
+    stale:  { color: "#7f8c8d", fill: "#95a5a6", opacity: 0.45 },  // gray
+};
+const DEFAULT_COLOR = { color: "#e74c3c", fill: "#e74c3c", opacity: 0.7 };
+
+// Status labels for display
+const STATUS_LABELS = { live: "Live", recent: "Recent", stale: "Older" };
+
 // DOM elements
 const serviceSelect = document.getElementById("service-select");
 const addressInput = document.getElementById("address-input");
@@ -59,6 +73,7 @@ async function loadServices() {
             const cat = svc.category || "Other";
             if (!groups[cat]) groups[cat] = [];
             groups[cat].push(svc);
+            if (svc.poll) pollableServices.add(svc.name);
         }
 
         serviceSelect.innerHTML = '<option value="">Select a dataset...</option>';
@@ -121,8 +136,20 @@ function getFieldAlias(fieldName) {
     return field ? (field.alias || field.name) : fieldName;
 }
 
-function buildPopupContent(record) {
+function getMarkerStyle(record, isPolled) {
+    if (!isPolled || !record._status) return DEFAULT_COLOR;
+    return STATUS_COLORS[record._status] || DEFAULT_COLOR;
+}
+
+function buildPopupContent(record, isPolled) {
     let html = '<table class="popup-table">';
+
+    // Show status badge for polled services
+    if (isPolled && record._status) {
+        const label = STATUS_LABELS[record._status] || record._status;
+        const style = STATUS_COLORS[record._status] || DEFAULT_COLOR;
+        html += `<tr><td>Status</td><td><span class="status-badge" style="background:${style.fill}">${label}</span></td></tr>`;
+    }
 
     // Show distance first if present
     if (record._distance_miles !== undefined) {
@@ -183,6 +210,9 @@ async function doSearch() {
     clearMap();
     setStatus("Searching...", "loading");
     searchBtn.disabled = true;
+    pushSearchState(service, address, radius);
+
+    const isPolled = pollableServices.has(service);
 
     try {
         // Fetch field metadata and nearby results in parallel
@@ -232,11 +262,12 @@ async function doSearch() {
         for (const record of data.records) {
             if (!record._lat || !record._lng) continue;
 
+            const style = getMarkerStyle(record, isPolled);
             const marker = L.circleMarker([record._lat, record._lng], {
                 radius: 7,
-                color: "#e74c3c",
-                fillColor: "#e74c3c",
-                fillOpacity: 0.7,
+                color: style.color,
+                fillColor: style.fill,
+                fillOpacity: style.opacity,
                 weight: 1.5,
             });
 
@@ -244,10 +275,12 @@ async function doSearch() {
             const summary = summarizeRecord(record);
             const distText = record._distance_miles !== undefined
                 ? `${record._distance_miles} mi - ` : "";
-            marker.bindTooltip(`${distText}${summary}`, { direction: "top", offset: [0, -8] });
+            const statusText = isPolled && record._status
+                ? `[${STATUS_LABELS[record._status] || record._status}] ` : "";
+            marker.bindTooltip(`${statusText}${distText}${summary}`, { direction: "top", offset: [0, -8] });
 
             // Popup on click (full details)
-            marker.bindPopup(buildPopupContent(record), { maxWidth: 350, maxHeight: 320 });
+            marker.bindPopup(buildPopupContent(record, isPolled), { maxWidth: 350, maxHeight: 320 });
 
             marker.addTo(markersLayer);
             markers.push({ marker, record });
@@ -261,9 +294,23 @@ async function doSearch() {
             map.fitBounds(radiusCircle.getBounds().pad(0.1));
         }
 
-        // Build results list in sidebar
-        setStatus(`${data.count} result(s) found (${data.total_fetched} fetched)`);
+        // Build status message
+        const fetchedLabel = data.total_cached !== undefined
+            ? `${data.total_cached} cached` : `${data.total_fetched} fetched`;
+        setStatus(`${data.count} result(s) found (${fetchedLabel})`);
         resultsList.innerHTML = "";
+
+        // Legend for polled services
+        if (isPolled && markers.length > 0) {
+            const legend = document.createElement("div");
+            legend.className = "status-legend";
+            legend.innerHTML = Object.entries(STATUS_COLORS).map(([status, s]) => {
+                const count = markers.filter(m => m.record._status === status).length;
+                if (count === 0) return "";
+                return `<span class="legend-item"><span class="legend-dot" style="background:${s.fill}"></span>${STATUS_LABELS[status]} (${count})</span>`;
+            }).join("");
+            resultsList.appendChild(legend);
+        }
 
         for (const { marker, record } of markers) {
             const item = document.createElement("div");
@@ -272,7 +319,9 @@ async function doSearch() {
             const dist = record._distance_miles !== undefined
                 ? `<span class="result-distance">${record._distance_miles} mi</span> ` : "";
             const summary = summarizeRecord(record);
-            item.innerHTML = `${dist}<span class="result-summary">${summary}</span>`;
+            const statusDot = isPolled && record._status
+                ? `<span class="legend-dot" style="background:${(STATUS_COLORS[record._status] || DEFAULT_COLOR).fill}"></span>` : "";
+            item.innerHTML = `${statusDot}${dist}<span class="result-summary">${summary}</span>`;
 
             item.addEventListener("click", () => {
                 map.setView([record._lat, record._lng], 16);
@@ -289,5 +338,41 @@ async function doSearch() {
     checkReady();
 }
 
+// URL state: push search params into the URL so links are shareable
+function pushSearchState(service, address, radius) {
+    const params = new URLSearchParams({ service, address, radius });
+    history.pushState(null, "", `?${params}`);
+}
+
+function loadSearchFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const service = params.get("service");
+    const address = params.get("address");
+    const radius = params.get("radius");
+
+    if (service && address) {
+        // Wait for services dropdown to populate, then set values and search
+        const waitForServices = setInterval(() => {
+            if (serviceSelect.querySelector(`option[value="${service}"]`)) {
+                clearInterval(waitForServices);
+                serviceSelect.value = service;
+                addressInput.value = address;
+                if (radius) {
+                    radiusInput.value = radius;
+                    radiusSlider.value = radius;
+                }
+                checkReady();
+                doSearch();
+            }
+        }, 100);
+        // Give up after 5 seconds
+        setTimeout(() => clearInterval(waitForServices), 5000);
+    }
+}
+
+// Handle browser back/forward
+window.addEventListener("popstate", loadSearchFromURL);
+
 // Init
 loadServices();
+loadSearchFromURL();

@@ -134,11 +134,14 @@ def haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float
 
 
 def _svc_entry(svc: dict) -> dict:
-    return {
+    entry = {
         "name": svc["name"],
         "description": svc.get("description", ""),
         "category": svc.get("category", "Other"),
     }
+    if svc.get("poll"):
+        entry["poll"] = True
+    return entry
 
 
 def list_services() -> list[dict]:
@@ -393,6 +396,68 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
         "coordinates": {"lat": query_coords.lat, "lng": query_coords.lng},
         "radius_miles": radius_miles,
         "total_fetched": len(records),
+        "count": len(nearby),
+        "has_geometry": meta.has_geometry,
+        "address_field": meta.address_field,
+        "records": nearby,
+    }
+
+
+def get_pollable_services() -> list[dict]:
+    """Return services from the catalog that have poll: true."""
+    catalog = _load_catalog()
+    return [svc for svc in catalog if svc.get("poll")]
+
+
+def fetch_service_raw(service_name: str, layer: int = 0) -> list[dict]:
+    """Fetch raw attribute dicts from a service (for the poller).
+
+    Returns geometry-enriched attribute dicts (point coords or centroids
+    injected as _geom_x/_geom_y) so cached records can be mapped without
+    re-querying ArcGIS.
+    """
+    records = fetch_records(service_name, layer=layer, max_records=500)
+    return records
+
+
+def find_nearby_cached(service_name: str, address: str, radius_miles: float = 2.0,
+                       cached_events: Optional[list[dict]] = None) -> dict:
+    """Proximity search using cached events instead of live-only."""
+    meta = get_service_meta(service_name, layer=0)
+    if meta is None:
+        return {"error": f"Service '{service_name}' not found"}
+
+    query_coords = geocode_address(address)
+    if query_coords is None:
+        return {"error": "Could not geocode query address", "query_address": address}
+
+    if cached_events is None:
+        cached_events = []
+
+    nearby = []
+    for evt in cached_events:
+        record_coords = _get_record_coords(evt, meta)
+        if record_coords is None:
+            continue
+
+        dist = haversine_miles(query_coords.lat, query_coords.lng,
+                               record_coords.lat, record_coords.lng)
+        if dist <= radius_miles:
+            formatted = _format_record(evt, meta, distance=dist, coords=record_coords)
+            formatted["_status"] = evt.get("_status", "live")
+            formatted["_first_seen"] = evt.get("_first_seen")
+            formatted["_last_seen"] = evt.get("_last_seen")
+            nearby.append(formatted)
+
+    nearby.sort(key=lambda r: r.get("_distance_miles", 999))
+
+    return {
+        "service": service_name,
+        "display_name": meta.display_name + " (Cached)",
+        "query_address": address,
+        "coordinates": {"lat": query_coords.lat, "lng": query_coords.lng},
+        "radius_miles": radius_miles,
+        "total_cached": len(cached_events),
         "count": len(nearby),
         "has_geometry": meta.has_geometry,
         "address_field": meta.address_field,

@@ -2,13 +2,29 @@
 All The APIs - Flask server for generic Nashville Open Data proximity search.
 """
 
+import logging
+from functools import partial
 from flask import Flask, request, jsonify, send_from_directory
 from alltheapis_service import (
     find_nearby, fetch_records, get_service_meta,
     list_services, search_services, _format_record,
+    get_pollable_services, fetch_service_raw, find_nearby_cached,
+)
+from dispatch_cache import ServicePoller, get_cached_events, get_cache_stats
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 
 app = Flask(__name__, static_folder="static")
+
+# Build poller with all poll: true services
+poller = ServicePoller()
+_pollable_names = set()
+for svc in get_pollable_services():
+    poller.add_target(svc["name"], partial(fetch_service_raw, svc["name"]))
+    _pollable_names.add(svc["name"])
 
 
 @app.route("/")
@@ -18,7 +34,8 @@ def index():
 
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok"})
+    stats = get_cache_stats()
+    return jsonify({"status": "ok", "cache": stats})
 
 
 @app.route("/services")
@@ -50,24 +67,49 @@ def info(service_name):
         "lng_field": meta.lng_field,
         "date_fields": meta.date_fields,
         "fields": meta.fields,
+        "poll": service_name in _pollable_names,
     })
 
 
 @app.route("/nearby/<path:service_name>")
 def nearby(service_name):
-    """Proximity search: find records near a given address."""
+    """Proximity search: find records near a given address.
+
+    For polled services, uses cached data (live + recent + stale) by default.
+    Pass ?live_only=1 to skip the cache and query ArcGIS directly.
+    """
     address = request.args.get("address")
     if not address:
         return jsonify({"error": "Missing required 'address' parameter"}), 400
     radius = float(request.args.get("radius", 2.0))
     layer = int(request.args.get("layer", 0))
     max_records = min(int(request.args.get("max", 1000)), 5000)
+    live_only = request.args.get("live_only", "0") == "1"
 
+    # Use cached data for polled services
+    if service_name in _pollable_names and not live_only:
+        cached = get_cached_events(service_name)
+        if cached:
+            result = find_nearby_cached(service_name, address,
+                                        radius_miles=radius,
+                                        cached_events=cached)
+            if "error" in result:
+                return jsonify(result), 404
+            return jsonify(result)
+
+    # Fall through to live query
     result = find_nearby(service_name, address, radius_miles=radius,
                          layer=layer, max_records=max_records)
     if "error" in result:
         return jsonify(result), 404
     return jsonify(result)
+
+
+@app.route("/cache/stats")
+def cache_stats():
+    """Cache statistics across all polled services."""
+    service = request.args.get("service")
+    return jsonify(get_cache_stats(service_name=service))
 
 
 @app.route("/records/<path:service_name>")
@@ -102,4 +144,5 @@ if __name__ == "__main__":
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=5000)
     args = parser.parse_args()
+    poller.start()
     app.run(host=args.host, port=args.port, debug=False)

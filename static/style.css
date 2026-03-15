@@ -217,6 +217,48 @@ button#search-btn:disabled {
     text-decoration: underline;
 }
 
+/* Status legend and badges for polled services */
+.status-legend {
+    display: flex;
+    gap: 12px;
+    padding: 6px 10px;
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    font-size: 0.75em;
+    color: #aaa;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.result-item .legend-dot {
+    width: 8px;
+    height: 8px;
+    margin-right: 4px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
     body {
