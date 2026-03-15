@@ -85,6 +85,8 @@ def nearby(service_name):
     layer = int(request.args.get("layer", 0))
     max_records = min(int(request.args.get("max", 1000)), 5000)
     live_only = request.args.get("live_only", "0") == "1"
+    date_from = request.args.get("from")  # e.g. 2020-12-25
+    date_to = request.args.get("to")      # e.g. 2020-12-26
 
     # Use cached data for polled services
     if service_name in _pollable_names and not live_only:
@@ -99,7 +101,8 @@ def nearby(service_name):
 
     # Fall through to live query
     result = find_nearby(service_name, address, radius_miles=radius,
-                         layer=layer, max_records=max_records)
+                         layer=layer, max_records=max_records,
+                         date_from=date_from, date_to=date_to)
     if "error" in result:
         return jsonify(result), 404
     return jsonify(result)

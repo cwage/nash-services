@@ -12,8 +12,8 @@ body {
 }
 
 #sidebar {
-    width: 360px;
-    min-width: 360px;
+    width: 420px;
+    min-width: 420px;
     background: #1a1a2e;
     color: #e0e0e0;
     padding: 20px;
@@ -257,6 +257,161 @@ button#search-btn:disabled {
     color: #fff;
     font-size: 0.85em;
     font-weight: 600;
+}
+
+/* Featured presets */
+#featured-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.featured-item {
+    display: block;
+    color: #4a9eff;
+    text-decoration: none;
+    font-size: 0.85em;
+    padding: 4px 8px;
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    transition: border-color 0.15s;
+}
+
+.featured-item:hover {
+    border-color: #4a9eff;
+}
+
+/* Date range inputs */
+.date-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.date-row input[type="datetime-local"] {
+    flex: 1;
+    background: #16213e;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    min-width: 0;
+}
+
+.date-row input[type="datetime-local"]:focus {
+    outline: none;
+    border-color: #4a9eff;
+}
+
+.date-sep {
+    color: #666;
+    font-size: 0.8em;
+}
+
+.date-nav {
+    background: #16213e;
+    border: 1px solid #333;
+    color: #4a9eff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    line-height: 1;
+    transition: border-color 0.15s;
+}
+
+.date-nav:hover {
+    border-color: #4a9eff;
+}
+
+/* Sector summary */
+.sector-summary {
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 8px 10px;
+}
+
+.sector-title {
+    font-size: 0.7em;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.sector-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+    font-size: 0.8em;
+}
+
+.sector-name {
+    width: 75px;
+    flex-shrink: 0;
+    color: #ccc;
+}
+
+.sector-bar-bg {
+    flex: 1;
+    height: 10px;
+    background: #0d1525;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.sector-bar {
+    height: 100%;
+    background: #f39c12;
+    border-radius: 2px;
+    transition: width 0.3s;
+}
+
+.sector-count {
+    width: 30px;
+    text-align: right;
+    color: #f39c12;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+/* Sparkline / time histogram */
+.sparkline {
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 8px 10px 4px;
+}
+
+.sparkline-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 1px;
+    height: 48px;
+}
+
+.sparkline-bar {
+    border-radius: 1px 1px 0 0;
+    min-width: 2px;
+    cursor: default;
+    transition: opacity 0.15s;
+}
+
+.sparkline-bar:hover {
+    opacity: 0.8;
+}
+
+.sparkline-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65em;
+    color: #666;
+    margin-top: 2px;
 }
 
 /* Mobile */

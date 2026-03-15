@@ -245,11 +245,25 @@ def get_service_meta(service_name: str, layer: int = 0) -> Optional[ServiceMeta]
 
 
 def fetch_records(service_name: str, layer: int = 0, max_records: int = 1000,
-                  order_by: Optional[str] = None) -> list[dict]:
+                  order_by: Optional[str] = None,
+                  date_from: Optional[str] = None, date_to: Optional[str] = None,
+                  date_field: Optional[str] = None) -> list[dict]:
     """Fetch records from a service. Returns list of attribute dicts with optional geometry."""
     url = f"{ARCGIS_BASE}/{service_name}/FeatureServer/{layer}/query"
+
+    where = "1=1"
+    # Normalize datetime-local format (T separator) to ArcGIS timestamp format
+    _df = date_from.replace("T", " ") if date_from else None
+    _dt = date_to.replace("T", " ") if date_to else None
+    if _df and _dt and date_field:
+        where = f"{date_field} BETWEEN timestamp '{_df}' AND timestamp '{_dt}'"
+    elif _df and date_field:
+        where = f"{date_field} >= timestamp '{_df}'"
+    elif _dt and date_field:
+        where = f"{date_field} <= timestamp '{_dt}'"
+
     params = {
-        "where": "1=1",
+        "where": where,
         "outFields": "*",
         "outSR": "4326",
         "f": "json",
@@ -354,8 +368,103 @@ def _format_record(record: dict, meta: ServiceMeta, distance: Optional[float] = 
     return out
 
 
+# MNPD sector approximate centroids (WGS84)
+MNPD_SECTOR_CENTROIDS = {
+    "C":  {"lat": 36.162, "lng": -86.781, "name": "Central"},
+    "E":  {"lat": 36.175, "lng": -86.715, "name": "East"},
+    "H":  {"lat": 36.175, "lng": -86.615, "name": "Hermitage"},
+    "M":  {"lat": 36.255, "lng": -86.710, "name": "Madison"},
+    "MT": {"lat": 36.150, "lng": -86.810, "name": "Midtown"},
+    "N":  {"lat": 36.230, "lng": -86.830, "name": "North"},
+    "S":  {"lat": 36.080, "lng": -86.730, "name": "South"},
+    "W":  {"lat": 36.130, "lng": -86.920, "name": "West"},
+    "TE": {"lat": 36.160, "lng": -86.780, "name": "Task Force / Extra"},
+}
+
+
+def _build_sector_summary(records: list[dict]) -> list[dict]:
+    """Group records without geometry by MNPD Sector field, return counts
+    with centroid coordinates for map visualization."""
+    from collections import Counter
+    sectors = Counter()
+    for r in records:
+        sector = (r.get("Sector") or "").strip()
+        if sector and sector in MNPD_SECTOR_CENTROIDS:
+            sectors[sector] += 1
+
+    if not sectors:
+        return []
+
+    result = []
+    for sector, count in sectors.most_common():
+        centroid = MNPD_SECTOR_CENTROIDS[sector]
+        result.append({
+            "sector": sector,
+            "name": centroid["name"],
+            "count": count,
+            "lat": centroid["lat"],
+            "lng": centroid["lng"],
+        })
+    return result
+
+
+def _build_time_histogram(records: list[dict], date_field: str) -> list[dict]:
+    """Build a time histogram from records, auto-selecting bucket size."""
+    timestamps = []
+    for r in records:
+        val = r.get(date_field)
+        if val is None:
+            continue
+        try:
+            if isinstance(val, (int, float)):
+                ts = val / 1000  # ArcGIS epoch millis
+            else:
+                continue
+            timestamps.append(ts)
+        except (ValueError, TypeError):
+            continue
+
+    if not timestamps:
+        return []
+
+    timestamps.sort()
+    span_hours = (timestamps[-1] - timestamps[0]) / 3600
+
+    # Pick bucket size based on time span
+    if span_hours <= 6:
+        bucket_secs = 600       # 10 minutes
+        fmt = "%H:%M"
+    elif span_hours <= 48:
+        bucket_secs = 3600      # 1 hour
+        fmt = "%m/%d %H:%M"
+    elif span_hours <= 720:     # 30 days
+        bucket_secs = 86400     # 1 day
+        fmt = "%m/%d"
+    else:
+        bucket_secs = 604800    # 1 week
+        fmt = "%m/%d"
+
+    buckets: dict[int, int] = {}
+    for ts in timestamps:
+        bucket = int(ts // bucket_secs) * bucket_secs
+        buckets[bucket] = buckets.get(bucket, 0) + 1
+
+    result = []
+    for bucket_ts in sorted(buckets):
+        dt = datetime.fromtimestamp(bucket_ts, tz=timezone.utc)
+        result.append({
+            "t": dt.isoformat(),
+            "label": dt.strftime(fmt),
+            "count": buckets[bucket_ts],
+        })
+
+    return result
+
+
 def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
-                layer: int = 0, max_records: int = 1000) -> dict:
+                layer: int = 0, max_records: int = 1000,
+                date_from: Optional[str] = None,
+                date_to: Optional[str] = None) -> dict:
     """
     Main proximity search: geocode the query address, fetch records from the
     named service, compute distances, filter and sort by proximity.
@@ -371,16 +480,23 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
 
     # Determine sort order (newest first if date fields exist)
     order_by = None
+    date_field = None
     if meta.date_fields:
-        order_by = f"{meta.date_fields[0]} DESC"
+        date_field = meta.date_fields[0]
+        order_by = f"{date_field} DESC"
 
     records = fetch_records(service_name, layer=layer, max_records=max_records,
-                            order_by=order_by)
+                            order_by=order_by, date_from=date_from,
+                            date_to=date_to, date_field=date_field)
 
     nearby = []
+    no_location = 0
+    no_location_records = []
     for record in records:
         record_coords = _get_record_coords(record, meta)
         if record_coords is None:
+            no_location += 1
+            no_location_records.append(record)
             continue
         dist = haversine_miles(query_coords.lat, query_coords.lng,
                                record_coords.lat, record_coords.lng)
@@ -389,7 +505,7 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
 
     nearby.sort(key=lambda r: r.get("_distance_miles", 999))
 
-    return {
+    result = {
         "service": service_name,
         "display_name": meta.display_name,
         "query_address": address,
@@ -397,10 +513,22 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
         "radius_miles": radius_miles,
         "total_fetched": len(records),
         "count": len(nearby),
+        "no_location": no_location,
         "has_geometry": meta.has_geometry,
         "address_field": meta.address_field,
         "records": nearby,
     }
+
+    # Sector summary for records without geometry
+    sector_summary = _build_sector_summary(no_location_records)
+    if sector_summary:
+        result["sector_summary"] = sector_summary
+
+    # Time histogram from ALL fetched records (not just nearby)
+    if meta.date_fields:
+        result["time_histogram"] = _build_time_histogram(records, meta.date_fields[0])
+
+    return result
 
 
 def get_pollable_services() -> list[dict]:
@@ -435,9 +563,11 @@ def find_nearby_cached(service_name: str, address: str, radius_miles: float = 2.
         cached_events = []
 
     nearby = []
+    no_location = 0
     for evt in cached_events:
         record_coords = _get_record_coords(evt, meta)
         if record_coords is None:
+            no_location += 1
             continue
 
         dist = haversine_miles(query_coords.lat, query_coords.lng,
@@ -451,7 +581,7 @@ def find_nearby_cached(service_name: str, address: str, radius_miles: float = 2.
 
     nearby.sort(key=lambda r: r.get("_distance_miles", 999))
 
-    return {
+    result = {
         "service": service_name,
         "display_name": meta.display_name + " (Cached)",
         "query_address": address,
@@ -459,10 +589,16 @@ def find_nearby_cached(service_name: str, address: str, radius_miles: float = 2.
         "radius_miles": radius_miles,
         "total_cached": len(cached_events),
         "count": len(nearby),
+        "no_location": no_location,
         "has_geometry": meta.has_geometry,
         "address_field": meta.address_field,
         "records": nearby,
     }
+
+    if meta.date_fields:
+        result["time_histogram"] = _build_time_histogram(cached_events, meta.date_fields[0])
+
+    return result
 
 
 if __name__ == "__main__":

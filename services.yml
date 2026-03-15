@@ -45,7 +45,6 @@ services:
     mode: point
     address_field: street
     description: Road closures (point layer)
-    poll: true
 
   - name: TransportationHazardReports_public
     category: Active / Real-Time
