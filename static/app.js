@@ -83,12 +83,12 @@ async function updateDateRange(preserveDates = false) {
     try {
         const resp = await fetch(`${API}/info/${service}`);
         const info = await resp.json();
-        if (!info.date_fields || info.date_fields.length === 0) {
+        if (!info.date_field) {
             dateRangeDiv.style.display = "none";
             return;
         }
         servicesWithDates.add(service);
-        const dateField = info.date_fields[0];
+        const dateField = info.date_field;
 
         // Query ArcGIS for min/max date
         const statsUrl = `https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/${service}/FeatureServer/0/query?where=1%3D1&outStatistics=[{"statisticType":"min","onStatisticField":"${dateField}","outStatisticFieldName":"minDate"},{"statisticType":"max","onStatisticField":"${dateField}","outStatisticFieldName":"maxDate"}]&f=json`;
@@ -112,8 +112,8 @@ async function updateDateRange(preserveDates = false) {
             dateToInput.min = minDate;
             dateToInput.max = maxDate;
             if (!preserveDates) {
-                if (!dateFromInput.value) dateFromInput.value = minDate;
-                if (!dateToInput.value) dateToInput.value = maxDate;
+                dateFromInput.value = minDate;
+                dateToInput.value = maxDate;
             }
             dateRangeDiv.querySelector("label").textContent =
                 `Date range (data: ${minDay} to ${maxDay})`;

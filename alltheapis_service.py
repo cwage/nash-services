@@ -150,6 +150,15 @@ def list_services() -> list[dict]:
     return [_svc_entry(svc) for svc in catalog]
 
 
+def get_catalog_entry(service_name: str) -> Optional[dict]:
+    """Look up a service's catalog entry from services.yml."""
+    catalog = _load_catalog()
+    for svc in catalog:
+        if svc["name"] == service_name:
+            return svc
+    return None
+
+
 def search_services(query: str) -> list[dict]:
     """Search curated services by keyword (case-insensitive, matches name, description, or category)."""
     catalog = _load_catalog()
@@ -478,11 +487,13 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
     if query_coords is None:
         return {"error": "Could not geocode query address", "query_address": address}
 
-    # Determine sort order (newest first if date fields exist)
+    # Use the explicitly configured date_field from services.yml if available,
+    # otherwise skip date filtering entirely (avoids filtering on admin metadata)
     order_by = None
     date_field = None
-    if meta.date_fields:
-        date_field = meta.date_fields[0]
+    catalog = get_catalog_entry(service_name)
+    if catalog and catalog.get("date_field"):
+        date_field = catalog["date_field"]
         order_by = f"{date_field} DESC"
 
     records = fetch_records(service_name, layer=layer, max_records=max_records,
