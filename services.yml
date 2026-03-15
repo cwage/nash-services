@@ -1,0 +1,437 @@
+# Curated list of Nashville Open Data services suitable for proximity search.
+# Only services with point geometry or geocodable address fields are included.
+#
+# mode:
+#   point    - service has lat/lng geometry built in
+#   geocode  - service has address strings only; requires geocoding
+#   centroid - service has polygon/line geometry; uses shape centroid
+#
+# To add a new service, find its name via the ArcGIS catalog:
+#   curl -s "https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services?f=json"
+
+services:
+
+  # === Active / Real-Time ===
+
+  - name: Metro_Nashville_Police_Department_Active_Dispatch_Table_view
+    mode: geocode
+    address_field: Location
+    description: MNPD active dispatch calls
+
+  - name: Nashville_Fire_Department_Active_Incidents_view
+    mode: geocode
+    description: NFD active incidents
+
+  - name: Metro_Water_Services_Outages_Feature_Layer_view2
+    mode: point
+    address_field: Address
+    description: Water service outages
+
+  - name: NERVE_Road_Closures_view
+    mode: centroid
+    address_field: street
+    description: Active road closures
+
+  - name: RoadClosures_public_b6790041823f4ecf96e7a54e50276f00
+    mode: point
+    address_field: street
+    description: Road closures (point layer)
+
+  - name: TransportationHazardReports_public
+    mode: point
+    description: Transportation hazard reports
+
+  - name: Warming_Stations_view
+    mode: point
+    address_field: Address
+    description: Warming stations
+
+  # === Police / Public Safety ===
+
+  - name: Metro_Nashville_Police_Department_Incidents_view
+    mode: point
+    address_field: Incident_Location
+    description: MNPD crime incidents
+
+  - name: MNPD_Calls_for_Service_2025_view
+    mode: point
+    address_field: Street_name
+    description: Police calls for service (2025)
+
+  - name: Metro_Nashville_Police_Department_Calls_for_Service_2024
+    mode: point
+    address_field: Street_name
+    description: Police calls for service (2024)
+
+  - name: Metro_Nashville_Police_Department_Calls_for_Service_2023
+    mode: point
+    address_field: Street_name
+    description: Police calls for service (2023)
+
+  - name: Metro_Nashville_Police_Department_Calls_for_Service_2022
+    mode: point
+    address_field: Street_name
+    description: Police calls for service (2022)
+
+  - name: Metro_Nashville_Police_Department_Calls_for_Service_2021
+    mode: point
+    address_field: Street_name
+    description: Police calls for service (2021)
+
+  - name: Metro_Nashville_Police_Department_Calls_for_Service_2020
+    mode: point
+    address_field: Street_name
+    description: Police calls for service (2020)
+
+  - name: Metro_Nashville_Police_Department_Calls_for_Service_2019
+    mode: point
+    address_field: Street_name
+    description: Police calls for service (2019)
+
+  - name: Metro_Nashville_Police_Department_Calls_for_Service_2018
+    mode: point
+    address_field: Street_name
+    description: Police calls for service (2018)
+
+  - name: Metro_Nashville_Police_Department_Calls_for_Service_2017
+    mode: point
+    address_field: Street_name
+    description: Police calls for service (2017)
+
+  - name: License_Plate_Reader_Locations
+    mode: point
+    address_field: LPR_Location
+    description: LPR camera locations
+
+  - name: Sexually_Oriented_Permitted_Businesses_view
+    mode: point
+    address_field: Location
+    description: Sexually oriented business permits
+
+  # === 311 / hubNashville ===
+
+  - name: hubNashville_311_Service_Requests_Current_Year_view
+    mode: point
+    address_field: Address
+    description: 311 service requests (current year)
+
+  - name: hubNashville_311_Service_Requests_2025_view
+    mode: point
+    address_field: Address
+    description: 311 service requests (2025)
+
+  - name: hubNashville_311_Service_Requests_2024_view
+    mode: point
+    address_field: Address
+    description: 311 service requests (2024)
+
+  - name: hubNashville_311_Service_Requests_2023_view
+    mode: point
+    address_field: Address
+    description: 311 service requests (2023)
+
+  - name: hubNashville_311_Service_Requests_2022_view
+    mode: point
+    address_field: Address
+    description: 311 service requests (2022)
+
+  - name: hubNashville_311_Service_Requests_2021_view
+    mode: point
+    address_field: Address
+    description: 311 service requests (2021)
+
+  # === Traffic / Transportation ===
+
+  - name: Crash_Data_WFL1
+    mode: point
+    description: Traffic crash data
+
+  - name: Traffic_Calming_Projects_view
+    mode: centroid
+    address_field: OnStreet
+    description: Traffic calming projects
+
+  - name: Road_Damage_Reporting_Winter_2026_Features_view
+    mode: point
+    address_field: street_name
+    description: Road damage reports (Winter 2026)
+
+  - name: BCycle_Locations_view
+    mode: point
+    address_field: Location
+    description: BCycle bike share stations
+
+  - name: BikeRacks_view
+    mode: point
+    address_field: Location
+    description: Bike rack locations
+
+  - name: Bikeways_view
+    mode: centroid
+    address_field: OnStreetName
+    description: Bikeways / bike lanes
+
+  - name: Crosswalks_2_view
+    mode: point
+    description: Crosswalk locations
+
+  - name: Curb_Ramps_view
+    mode: point
+    address_field: OnStreet
+    description: Curb ramp locations
+
+  - name: NDOT_Street_Sweeping_Schedule
+    mode: centroid
+    address_field: STREET
+    description: Street sweeping schedule
+
+  - name: Roadway_Paving_Management_Projects
+    mode: centroid
+    address_field: ProjectLocation
+    description: Roadway paving projects
+
+  # === Permits / Development ===
+
+  - name: Building_Permits_Issued_2
+    mode: point
+    address_field: Address
+    description: Building permits issued
+
+  - name: Building_Permit_Applications_Feature_Layer_view
+    mode: point
+    address_field: Address
+    description: Building permit applications
+
+  - name: Trade_Permits_View
+    mode: point
+    address_field: Address
+    description: Trade permits (electrical, mechanical, plumbing)
+
+  - name: Active_Right-of-Way_Permits
+    mode: point
+    address_field: Onstreet
+    description: Active right-of-way permits
+
+  - name: Board_of_Zoning_Appeals_Cases_view
+    mode: point
+    description: Board of zoning appeals cases
+
+  - name: Development_Tracker_Cases_view
+    mode: point
+    address_field: LOCATION_DESC
+    description: Development tracker cases
+
+  - name: PlanningDepartmentDevelopmentApplications_view
+    mode: point
+    address_field: Location
+    description: Planning department applications
+
+  - name: Residential_Short_Term_Rental_Permits_view
+    mode: point
+    address_field: Address
+    description: Short-term rental (Airbnb) permits
+
+  - name: Beer_Permit_Locations_Feature_Layer_view
+    mode: point
+    address_field: Address
+    description: Beer permit locations
+
+  - name: Registered_Professional_Contractors_view_2
+    mode: point
+    address_field: Address
+    description: Registered professional contractors
+
+  # === Property / Housing ===
+
+  - name: Property_Standards_Violations_2
+    mode: point
+    address_field: Property_Address
+    description: Property standards violations
+
+  - name: Housing_Opportunities_WFL1
+    mode: point
+    address_field: Address
+    description: Housing opportunities
+
+  - name: Parcels_view
+    mode: point
+    address_field: PropStreet
+    description: Property parcels
+
+  - name: Tax_Increment_Financing_Projects
+    mode: point
+    description: TIF projects
+
+  # === Historic ===
+
+  - name: Historic_Districts_and_Properties
+    mode: point
+    address_field: Address
+    description: Historic districts and properties
+
+  - name: Historic_Commission_Permits
+    mode: point
+    address_field: LOCATION
+    description: Historic commission permits
+
+  - name: Metropolitan_Historic_Zoning_Commission_Permits_view
+    mode: point
+    address_field: LOCATION
+    description: Historic zoning commission permits
+
+  - name: Historical_Markers_view
+    mode: point
+    address_field: Location
+    description: Historical markers
+
+  - name: Davidson_County_Cemetery_Survey_Table_view
+    mode: point
+    address_field: Street
+    description: Cemetery survey
+
+  # === Parks / Public Spaces ===
+
+  - name: Park_Points__view
+    mode: point
+    address_field: Address
+    description: Parks
+
+  - name: Parks_Trails_and_Trail_Features
+    mode: point
+    address_field: Address
+    description: Parks, trails, and trail features
+
+  - name: Metro_Art_in_Public_Places_view
+    mode: point
+    address_field: Address
+    description: Public art installations
+
+  - name: Metro_Arts_Public_Artwork_view
+    mode: point
+    address_field: Location
+    description: Public artwork
+
+  # === Public Services / Facilities ===
+
+  - name: Fire_Station_Locations
+    mode: point
+    address_field: Address
+    description: Fire station locations
+
+  - name: Library_Facilities
+    mode: point
+    address_field: Address
+    description: Public libraries
+
+  - name: Metro_Nashville_Public_Schools_view
+    mode: point
+    description: Public schools
+
+  - name: Public_Health_Clinics_view
+    mode: point
+    address_field: Address
+    description: Public health clinics
+
+  - name: Metro_Public_Health_Community_Partners_view
+    mode: point
+    address_field: Address
+    description: Public health community partners
+
+  - name: Metro_Social_Services_Locations_and_Services_Offered_View
+    mode: point
+    address_field: Address
+    description: Social services locations
+
+  - name: Pharmaceutical_Disposal_Locations_view
+    mode: point
+    address_field: Address
+    description: Pharmaceutical disposal drop-off locations
+
+  - name: Convenience_Centers_and_Recycling_Dropoff_Locations_view
+    mode: point
+    address_field: Address
+    description: Recycling drop-off and convenience centers
+
+  - name: Metro_Public_WiFi_Locations_view
+    mode: point
+    address_field: Address
+    description: Public WiFi locations
+
+  - name: Public_Water_Fountains_and_Hydration_Systems_view
+    mode: point
+    address_field: location
+    description: Public water fountains
+
+  - name: Davidson_County_Voting_Locations_View
+    mode: point
+    address_field: Address
+    description: Voting locations
+
+  - name: Early_Voting_Locations_View
+    mode: point
+    address_field: ADDRESS
+    description: Early voting locations
+
+  - name: Police_Precincts_view
+    mode: point
+    address_field: Address
+    description: Police precinct locations
+
+  - name: FoodStores_Total_view
+    mode: point
+    address_field: Address_Full
+    description: Food stores
+
+  - name: Downtown_Special_Events_Recurring
+    mode: point
+    address_field: user_event_location_name
+    description: Downtown special events
+
+  # === Infrastructure / Capital Projects ===
+
+  - name: Capital_Projects_view
+    mode: point
+    description: Capital projects
+
+  - name: Capital_Project_Management_System_view
+    mode: point
+    address_field: ProjectLocation
+    description: Capital project management
+
+  - name: NDOTCapitalProjects_view
+    mode: point
+    address_field: ProjectLocation
+    description: NDOT capital projects
+
+  - name: NERVE_Facilities_Public_View
+    mode: point
+    address_field: address
+    description: NERVE facilities
+
+  - name: Sidewalk_Inventory_for_ADA_Self_Assessment_view
+    mode: point
+    description: Sidewalk ADA assessment inventory
+
+  - name: Pedestrian_Signal_Inventory_and_ADA_Self_Assessments_view
+    mode: point
+    description: Pedestrian signal ADA assessments
+
+  # === Environment / Other ===
+
+  - name: Root_Nashville_Tree_Tracker_Test_Data
+    mode: point
+    address_field: OnStreet
+    description: Tree tracker data
+
+  - name: Hail_Storms
+    mode: point
+    description: Hail storm data
+
+  - name: Metro_Energy_Use_Intensity_Benchmarking_view
+    mode: geocode
+    address_field: Building_Address
+    description: Building energy use benchmarking
+
+  - name: Traverse_Points_Temperature
+    mode: point
+    description: Urban heat traverse temperature points
