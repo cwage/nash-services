@@ -37,12 +37,18 @@ test.describe("Core functionality", () => {
     const state = await page.evaluate(() => ({
       status: document.getElementById("status").textContent,
       resultItems: document.querySelectorAll(".result-item").length,
+      incidentItems: document.querySelectorAll(".result-incident").length,
+      timeItems: document.querySelectorAll(".result-time").length,
       hasDateRange: document.getElementById("date-range").style.display !== "none",
     }));
 
     console.log("MNPD dispatch:", state.status);
+    console.log("Incident labels:", state.incidentItems, "Time labels:", state.timeItems);
     expect(state.status).toContain("result(s) found");
-    // Polled services may still show date range (they have date fields)
+    // Polled services should show incident type labels
+    if (state.resultItems > 0) {
+      expect(state.incidentItems).toBeGreaterThan(0);
+    }
 
     await page.screenshot({ path: "/tests/core-mnpd-dispatch.png", fullPage: true });
   });

@@ -44,5 +44,5 @@ test("switching from bombing preset to normal dataset clears sector circles", as
   await page.screenshot({ path: "/tests/clear-map-after-switch.png", fullPage: true });
 
   expect(hasSectorSummary).toBe(false);
-  // Should only have radius circle + result markers, no leftover sector circles
+  expect(pathsAfter).toBeLessThan(pathsBefore);
 });
