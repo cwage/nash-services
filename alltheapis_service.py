@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 
 ARCGIS_BASE = "https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services"
 CENSUS_GEOCODER_URL = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress"
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 SERVICES_YML = os.path.join(os.path.dirname(os.path.abspath(__file__)), "services.yml")
 
 # In-memory geocode cache
@@ -57,6 +58,7 @@ class ServiceMeta:
     fields: list[dict]
     address_field: Optional[str] = None
     city_field: Optional[str] = None
+    zip_field: Optional[str] = None
     lat_field: Optional[str] = None
     lng_field: Optional[str] = None
     date_fields: list[str] = field(default_factory=list)
@@ -93,6 +95,35 @@ def geocode_address(address: str, city_hint: str = "Nashville, TN") -> Optional[
         return None
 
 
+def geocode_zip(zipcode: str) -> Optional[Coordinates]:
+    """Geocode a US ZIP code via Nominatim (OSM). Returns centroid."""
+    zipcode = zipcode.strip()[:5]
+    cache_key = f"zip:{zipcode}"
+    if cache_key in _geocode_cache:
+        return _geocode_cache[cache_key]
+
+    params = {
+        "postalcode": zipcode,
+        "country": "US",
+        "format": "json",
+        "limit": 1,
+    }
+    headers = {"User-Agent": "alltheapis"}
+    try:
+        resp = requests.get(NOMINATIM_URL, params=params, headers=headers, timeout=10)
+        resp.raise_for_status()
+        results = resp.json()
+        if not results:
+            _geocode_cache[cache_key] = None
+            return None
+        result = Coordinates(lat=float(results[0]["lat"]), lng=float(results[0]["lon"]))
+        _geocode_cache[cache_key] = result
+        return result
+    except (requests.RequestException, KeyError, IndexError, ValueError):
+        _geocode_cache[cache_key] = None
+        return None
+
+
 def haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Great-circle distance in miles."""
     R = 3959
@@ -102,24 +133,29 @@ def haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+def _svc_entry(svc: dict) -> dict:
+    return {
+        "name": svc["name"],
+        "description": svc.get("description", ""),
+        "category": svc.get("category", "Other"),
+    }
+
+
 def list_services() -> list[dict]:
     """List curated services from services.yml."""
     catalog = _load_catalog()
-    return [
-        {"name": svc["name"], "description": svc.get("description", "")}
-        for svc in catalog
-    ]
+    return [_svc_entry(svc) for svc in catalog]
 
 
 def search_services(query: str) -> list[dict]:
-    """Search curated services by keyword (case-insensitive, matches name or description)."""
+    """Search curated services by keyword (case-insensitive, matches name, description, or category)."""
     catalog = _load_catalog()
     terms = query.lower().split()
     results = []
     for svc in catalog:
-        searchable = f"{svc['name']} {svc.get('description', '')}".lower()
+        searchable = f"{svc['name']} {svc.get('description', '')} {svc.get('category', '')}".lower()
         if all(term in searchable for term in terms):
-            results.append({"name": svc["name"], "description": svc.get("description", "")})
+            results.append(_svc_entry(svc))
     return results
 
 
@@ -144,15 +180,17 @@ def get_service_meta(service_name: str, layer: int = 0) -> Optional[ServiceMeta]
     geom_type = data.get("geometryType")
     has_geometry = geom_type is not None and geom_type != ""
 
-    # Auto-detect address, city, lat/lng, and date fields
+    # Auto-detect address, city, zip, lat/lng, and date fields
     address_field = None
     city_field = None
+    zip_field = None
     lat_field = None
     lng_field = None
     date_fields = []
 
     address_patterns = re.compile(r"^(address|location|street|incident_location|mapped_location)$", re.IGNORECASE)
     city_patterns = re.compile(r"^(city|cityname|city_name)$", re.IGNORECASE)
+    zip_patterns = re.compile(r"^(zip|zipcode|zip_code|postalcode|postal_code)$", re.IGNORECASE)
     lat_patterns = re.compile(r"^(lat|latitude|y)$", re.IGNORECASE)
     lng_patterns = re.compile(r"^(lng|lon|long|longitude|x)$", re.IGNORECASE)
 
@@ -167,6 +205,8 @@ def get_service_meta(service_name: str, layer: int = 0) -> Optional[ServiceMeta]
             address_field = fname
         if not city_field and city_patterns.match(fname):
             city_field = fname
+        if not zip_field and zip_patterns.match(fname):
+            zip_field = fname
         if not lat_field and lat_patterns.match(fname):
             lat_field = fname
         if not lng_field and lng_patterns.match(fname):
@@ -191,6 +231,7 @@ def get_service_meta(service_name: str, layer: int = 0) -> Optional[ServiceMeta]
         fields=[{"name": f["name"], "type": f["type"], "alias": f.get("alias", f["name"])} for f in fields],
         address_field=address_field,
         city_field=city_field,
+        zip_field=zip_field,
         lat_field=lat_field,
         lng_field=lng_field,
         date_fields=date_fields,
@@ -263,10 +304,16 @@ def _get_record_coords(record: dict, meta: ServiceMeta) -> Optional[Coordinates]
     if meta.address_field:
         addr = record.get(meta.address_field)
         if addr and isinstance(addr, str) and addr.strip():
+            # Nashville datasets use neighborhood/precinct names in the "city" field
+            # (e.g. "GERMANTOWN", "DONELSON"), not actual cities. Always use Nashville.
             city_hint = "Nashville, TN"
-            if meta.city_field and record.get(meta.city_field):
-                city_hint = f"{record[meta.city_field]}, TN"
             return geocode_address(addr, city_hint=city_hint)
+
+    # Last resort: geocode ZIP code centroid via Nominatim
+    if meta.zip_field:
+        zipcode = record.get(meta.zip_field)
+        if zipcode and isinstance(zipcode, str) and zipcode.strip():
+            return geocode_zip(zipcode)
 
     return None
 

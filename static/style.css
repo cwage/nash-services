@@ -1,0 +1,236 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#sidebar {
+    width: 360px;
+    min-width: 360px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+h1 {
+    font-size: 1.4em;
+    color: #fff;
+    margin-bottom: 0;
+}
+
+.subtitle {
+    font-size: 0.85em;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.control-group label {
+    font-size: 0.8em;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+select, input[type="text"], input[type="number"] {
+    background: #16213e;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+select {
+    cursor: pointer;
+}
+
+select:focus, input:focus {
+    outline: none;
+    border-color: #4a9eff;
+}
+
+select optgroup {
+    color: #4a9eff;
+    font-style: normal;
+    font-weight: 600;
+}
+
+select option {
+    color: #e0e0e0;
+    background: #16213e;
+}
+
+.radius-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+input[type="range"] {
+    flex: 1;
+    accent-color: #4a9eff;
+}
+
+input[type="number"] {
+    width: 70px;
+    text-align: center;
+}
+
+button#search-btn {
+    background: #4a9eff;
+    color: #fff;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 1em;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+button#search-btn:hover:not(:disabled) {
+    background: #3a8eef;
+}
+
+button#search-btn:disabled {
+    background: #333;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.status {
+    font-size: 0.85em;
+    color: #888;
+    min-height: 1.2em;
+}
+
+.status.error {
+    color: #ff6b6b;
+}
+
+.status.loading {
+    color: #4a9eff;
+}
+
+#results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.result-item {
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.result-item:hover {
+    border-color: #4a9eff;
+}
+
+.result-item .result-distance {
+    color: #4a9eff;
+    font-weight: 600;
+}
+
+.result-item .result-summary {
+    color: #ccc;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#map {
+    flex: 1;
+    height: 100vh;
+}
+
+/* Leaflet popup styling */
+.leaflet-popup-content-wrapper {
+    border-radius: 6px;
+    max-width: 350px;
+}
+
+.leaflet-popup-content {
+    margin: 10px 14px;
+    font-size: 0.85em;
+    line-height: 1.5;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.popup-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.popup-table td {
+    padding: 2px 6px 2px 0;
+    vertical-align: top;
+}
+
+.popup-table td:first-child {
+    color: #666;
+    font-size: 0.85em;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.popup-table td:last-child {
+    word-break: break-word;
+}
+
+.popup-directions {
+    margin-top: 8px;
+    font-size: 0.9em;
+}
+
+.popup-directions a {
+    color: #4a9eff;
+    text-decoration: none;
+}
+
+.popup-directions a:hover {
+    text-decoration: underline;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    #sidebar {
+        width: 100%;
+        min-width: unset;
+        max-height: 45vh;
+        min-height: 200px;
+    }
+
+    #map {
+        height: 55vh;
+    }
+}

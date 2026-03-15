@@ -2,13 +2,18 @@
 All The APIs - Flask server for generic Nashville Open Data proximity search.
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from alltheapis_service import (
     find_nearby, fetch_records, get_service_meta,
     list_services, search_services, _format_record,
 )
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
+
+
+@app.route("/")
+def index():
+    return send_from_directory("static", "index.html")
 
 
 @app.route("/health")

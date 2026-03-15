@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All The APIs - Nashville Open Data</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+    <div id="sidebar">
+        <h1>All The APIs</h1>
+        <p class="subtitle">Nashville Open Data proximity search</p>
+
+        <div class="control-group">
+            <label for="service-select">Dataset</label>
+            <select id="service-select">
+                <option value="">Loading services...</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="address-input">Address</label>
+            <input type="text" id="address-input" placeholder="e.g. 1000 Broadway, Nashville" />
+        </div>
+
+        <div class="control-group">
+            <label for="radius-input">Radius (miles)</label>
+            <div class="radius-row">
+                <input type="range" id="radius-slider" min="0.25" max="10" step="0.25" value="2" />
+                <input type="number" id="radius-input" min="0.25" max="10" step="0.25" value="2" />
+            </div>
+        </div>
+
+        <button id="search-btn" disabled>Search</button>
+
+        <div id="status" class="status"></div>
+
+        <div id="results-list"></div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>
