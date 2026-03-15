@@ -34,7 +34,7 @@ jobs:
 
       - name: Run Playwright tests
         run: |
-          docker compose exec -T playwright npx playwright test \
+          docker compose exec -T -u "$(id -u):$(id -g)" playwright npx playwright test \
             core.spec.js \
             date-nav.spec.js \
             date-filter-config.spec.js \
