@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { pickService } = require("./helpers");
 
 test("switching from bombing preset to normal dataset clears sector circles", async ({ page }) => {
   test.setTimeout(90000);
@@ -21,7 +22,7 @@ test("switching from bombing preset to normal dataset clears sector circles", as
   expect(pathsBefore).toBeGreaterThan(5); // radius + sectors
 
   // Now switch to a different, non-sector dataset
-  await page.selectOption("#service-select", "Building_Permits_Issued_2");
+  await pickService(page, "Building_Permits_Issued_2");
   await page.fill("#address-input", "1000 Broadway, Nashville, TN");
   await page.fill("#radius-input", "1");
   await page.click("#search-btn");

@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { pickService } = require("./helpers");
 
 test("Christmas bombing timeline - 2-hour windows across Dec 25", async ({ page }) => {
   test.setTimeout(180000);
@@ -10,8 +11,7 @@ test("Christmas bombing timeline - 2-hour windows across Dec 25", async ({ page 
   }, { timeout: 15000 });
 
   // Set up the search — use fill() so input events fire
-  await page.selectOption("#service-select",
-    "Metro_Nashville_Police_Department_Calls_for_Service_2020");
+  await pickService(page, "Metro_Nashville_Police_Department_Calls_for_Service_2020");
   await page.fill("#address-input", "166 2nd Ave N, Nashville, TN");
   await page.fill("#radius-input", "2");
   await page.evaluate(() => {

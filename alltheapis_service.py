@@ -1,5 +1,5 @@
 """
-All The APIs Service - Generic Nashville Open Data proximity search.
+Nash Services - Generic Nashville Open Data proximity search.
 
 Queries any Nashville ArcGIS FeatureServer service by name, auto-detects
 geometry and address fields, geocodes as needed, and filters by proximity.
@@ -19,8 +19,53 @@ CENSUS_GEOCODER_URL = "https://geocoding.geo.census.gov/geocoder/locations/oneli
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 SERVICES_YML = os.path.join(os.path.dirname(os.path.abspath(__file__)), "services.yml")
 
-# In-memory geocode cache
+# In-memory geocode cache (backed by SQLite for persistence across restarts)
 _geocode_cache: dict[str, Optional["Coordinates"]] = {}
+_GEOCODE_DB = os.environ.get("DISPATCH_CACHE_DB", "/tmp/service_cache.db")
+
+
+def _init_geocode_db():
+    """Ensure the geocode_cache table exists and load into memory."""
+    import sqlite3
+    try:
+        conn = sqlite3.connect(_GEOCODE_DB, timeout=5)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS geocode_cache (
+                cache_key TEXT PRIMARY KEY,
+                lat REAL,
+                lng REAL
+            )
+        """)
+        conn.commit()
+        rows = conn.execute("SELECT cache_key, lat, lng FROM geocode_cache").fetchall()
+        for key, lat, lng in rows:
+            if lat is not None and lng is not None:
+                _geocode_cache[key] = Coordinates(lat=lat, lng=lng)
+            else:
+                _geocode_cache[key] = None
+        conn.close()
+    except Exception:
+        pass  # fall back to empty in-memory cache
+
+
+def _persist_geocode(key: str, coords: Optional["Coordinates"]):
+    """Write a geocode result to SQLite for persistence."""
+    import sqlite3
+    try:
+        conn = sqlite3.connect(_GEOCODE_DB, timeout=5)
+        lat = coords.lat if coords else None
+        lng = coords.lng if coords else None
+        conn.execute(
+            "INSERT OR REPLACE INTO geocode_cache (cache_key, lat, lng) VALUES (?, ?, ?)",
+            (key, lat, lng),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+_init_geocode_db()
 
 # Cache for service metadata (schema doesn't change often)
 _service_meta_cache: dict[str, dict] = {}
@@ -85,10 +130,12 @@ def geocode_address(address: str, city_hint: str = "Nashville, TN") -> Optional[
         matches = resp.json().get("result", {}).get("addressMatches", [])
         if not matches:
             _geocode_cache[full_address] = None
+            _persist_geocode(full_address, None)
             return None
         coords = matches[0].get("coordinates", {})
         result = Coordinates(lat=coords.get("y"), lng=coords.get("x"))
         _geocode_cache[full_address] = result
+        _persist_geocode(full_address, result)
         return result
     except (requests.RequestException, KeyError, IndexError):
         _geocode_cache[full_address] = None
@@ -108,16 +155,18 @@ def geocode_zip(zipcode: str) -> Optional[Coordinates]:
         "format": "json",
         "limit": 1,
     }
-    headers = {"User-Agent": "alltheapis"}
+    headers = {"User-Agent": "nash-services"}
     try:
         resp = requests.get(NOMINATIM_URL, params=params, headers=headers, timeout=10)
         resp.raise_for_status()
         results = resp.json()
         if not results:
             _geocode_cache[cache_key] = None
+            _persist_geocode(cache_key, None)
             return None
         result = Coordinates(lat=float(results[0]["lat"]), lng=float(results[0]["lon"]))
         _geocode_cache[cache_key] = result
+        _persist_geocode(cache_key, result)
         return result
     except (requests.RequestException, KeyError, IndexError, ValueError):
         _geocode_cache[cache_key] = None

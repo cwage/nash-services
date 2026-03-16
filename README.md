@@ -1,4 +1,4 @@
-# alltheapis
+# nash-services
 
 Generic proximity search tool for Nashville Open Data (ArcGIS). Pass any service name and an address, get back what's nearby.
 

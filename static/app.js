@@ -20,9 +20,48 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 // Layer groups for managing markers
-let markersLayer = L.layerGroup().addTo(map);
+let markersLayer = L.markerClusterGroup({
+    maxClusterRadius: 40,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    disableClusteringAtZoom: 18,
+    iconCreateFunction: function (cluster) {
+        const children = cluster.getAllChildMarkers();
+        const count = children.length;
+        // Use the "hottest" status color in the cluster
+        const STATUS_PRIORITY = { live: 3, recent: 2, stale: 1 };
+        let hottest = "stale";
+        let isPolledCluster = false;
+        for (const m of children) {
+            const s = m._record_status;
+            if (s) {
+                isPolledCluster = true;
+                if ((STATUS_PRIORITY[s] || 0) > (STATUS_PRIORITY[hottest] || 0)) {
+                    hottest = s;
+                }
+            }
+        }
+        const colors = {
+            live:   { bg: "rgba(231,76,60,0.7)",  ring: "rgba(231,76,60,0.25)" },
+            recent: { bg: "rgba(243,156,18,0.7)",  ring: "rgba(243,156,18,0.25)" },
+            stale:  { bg: "rgba(149,165,166,0.7)", ring: "rgba(149,165,166,0.25)" },
+        };
+        const c = isPolledCluster ? (colors[hottest] || colors.stale) : { bg: "rgba(231,76,60,0.7)", ring: "rgba(231,76,60,0.25)" };
+        const size = count < 10 ? 36 : count < 50 ? 44 : 52;
+        return L.divIcon({
+            html: `<div style="background:${c.ring};border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;"><div style="background:${c.bg};color:#fff;font-weight:600;font-size:12px;border-radius:50%;width:${size - 10}px;height:${size - 10}px;display:flex;align-items:center;justify-content:center;">${count}</div></div>`,
+            className: "marker-cluster-custom",
+            iconSize: L.point(size, size),
+        });
+    },
+});
+map.addLayer(markersLayer);
 let radiusCircle = null;
 let searchMarker = null;
+
+// Current result set for viewport filtering
+let currentResults = []; // [{ marker, record, item }]
 
 // Field metadata for the current service (aliases, date fields)
 let currentFieldMeta = null;
@@ -41,8 +80,14 @@ const DEFAULT_COLOR = { color: "#e74c3c", fill: "#e74c3c", opacity: 0.7 };
 // Status labels for display
 const STATUS_LABELS = { live: "Live", recent: "Recent", stale: "Older" };
 
+// Full service list for filtering
+let allServices = [];
+
 // DOM elements
+const serviceSearch = document.getElementById("service-search");
 const serviceSelect = document.getElementById("service-select");
+const serviceDropdown = document.getElementById("service-dropdown");
+const serviceSelectedEl = document.getElementById("service-selected");
 const addressInput = document.getElementById("address-input");
 const radiusSlider = document.getElementById("radius-slider");
 const radiusInput = document.getElementById("radius-input");
@@ -53,12 +98,18 @@ const searchBtn = document.getElementById("search-btn");
 const statusEl = document.getElementById("status");
 const resultsList = document.getElementById("results-list");
 
-// Keep slider and number input in sync
+// Keep slider and number input in sync, auto-search on change
 radiusSlider.addEventListener("input", () => {
     radiusInput.value = radiusSlider.value;
 });
+radiusSlider.addEventListener("change", () => {
+    if (serviceSelect.value && addressInput.value.trim()) doSearch();
+});
 radiusInput.addEventListener("input", () => {
     radiusSlider.value = radiusInput.value;
+});
+radiusInput.addEventListener("change", () => {
+    if (serviceSelect.value && addressInput.value.trim()) doSearch();
 });
 
 // Track which services have date fields (populated on info fetch)
@@ -179,33 +230,136 @@ addressInput.addEventListener("keydown", (e) => {
 });
 searchBtn.addEventListener("click", doSearch);
 
-// Load services into the dropdown, grouped by category
+// Select a service programmatically (used by combobox, presets, and URL loading)
+function selectService(serviceName) {
+    // Update hidden select for form value tracking
+    serviceSelect.value = serviceName || "";
+
+    // Update selected label
+    if (serviceName) {
+        const svc = allServices.find(s => s.name === serviceName);
+        const label = svc ? (svc.description || svc.name) : serviceName;
+        serviceSelectedEl.innerHTML = "";
+        const labelSpan = document.createElement("span");
+        labelSpan.textContent = label;
+        serviceSelectedEl.appendChild(labelSpan);
+        const clearBtn = document.createElement("span");
+        clearBtn.className = "clear-service";
+        clearBtn.textContent = "\u00d7";
+        clearBtn.title = "Clear selection";
+        clearBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selectService("");
+        });
+        serviceSelectedEl.appendChild(clearBtn);
+    } else {
+        serviceSelectedEl.textContent = "";
+    }
+
+    serviceSearch.value = "";
+    closeServiceDropdown();
+    checkReady();
+}
+
+// Build the visible dropdown panel from a list of services
+function buildServicePanel(services) {
+    serviceDropdown.innerHTML = "";
+    const groups = {};
+    for (const svc of services) {
+        const cat = svc.category || "Other";
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(svc);
+    }
+
+    for (const [category, svcs] of Object.entries(groups)) {
+        const groupLabel = document.createElement("div");
+        groupLabel.className = "group-label";
+        groupLabel.textContent = category;
+        serviceDropdown.appendChild(groupLabel);
+        for (const svc of svcs) {
+            const opt = document.createElement("div");
+            opt.className = "service-option";
+            opt.textContent = svc.description || svc.name;
+            opt.dataset.value = svc.name;
+            opt.addEventListener("mousedown", (e) => {
+                e.preventDefault(); // prevent blur before click registers
+                selectService(svc.name);
+                updateDateRange();
+                if (addressInput.value.trim()) {
+                    doSearch();
+                } else {
+                    addressInput.focus();
+                }
+            });
+            serviceDropdown.appendChild(opt);
+        }
+    }
+
+}
+
+// Filter services by search query
+function filterServices(query) {
+    if (!query) return allServices;
+    const q = query.toLowerCase();
+    return allServices.filter(svc => {
+        const name = (svc.description || svc.name).toLowerCase();
+        const cat = (svc.category || "").toLowerCase();
+        return name.includes(q) || cat.includes(q);
+    });
+}
+
+function openServiceDropdown() {
+    serviceDropdown.classList.add("open");
+}
+
+function closeServiceDropdown() {
+    serviceDropdown.classList.remove("open");
+}
+
+serviceSearch.addEventListener("input", () => {
+    const query = serviceSearch.value.trim();
+    buildServicePanel(filterServices(query));
+    openServiceDropdown();
+});
+
+serviceSearch.addEventListener("focus", () => {
+    buildServicePanel(filterServices(serviceSearch.value.trim()));
+    openServiceDropdown();
+});
+
+serviceSearch.addEventListener("blur", () => {
+    // Small delay so mousedown on option fires first
+    setTimeout(closeServiceDropdown, 150);
+});
+
+serviceSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        closeServiceDropdown();
+        serviceSearch.blur();
+    }
+});
+
+// Load services and build initial panel
 async function loadServices() {
     try {
         const resp = await fetch(`${API}/services`);
         const data = await resp.json();
 
-        // Group by category
-        const groups = {};
-        for (const svc of data.services) {
-            const cat = svc.category || "Other";
-            if (!groups[cat]) groups[cat] = [];
-            groups[cat].push(svc);
+        allServices = data.services;
+        for (const svc of allServices) {
             if (svc.poll) pollableServices.add(svc.name);
         }
 
+        // Populate hidden select once with all services (never rebuilt on filter)
         serviceSelect.innerHTML = '<option value="">Select a dataset...</option>';
-        for (const [category, svcs] of Object.entries(groups)) {
-            const optgroup = document.createElement("optgroup");
-            optgroup.label = category;
-            for (const svc of svcs) {
-                const opt = document.createElement("option");
-                opt.value = svc.name;
-                opt.textContent = svc.description || svc.name;
-                optgroup.appendChild(opt);
-            }
-            serviceSelect.appendChild(optgroup);
+        for (const svc of allServices) {
+            const option = document.createElement("option");
+            option.value = svc.name;
+            option.textContent = svc.description || svc.name;
+            serviceSelect.appendChild(option);
         }
+
+        buildServicePanel(allServices);
         checkReady();
     } catch (err) {
         setStatus("Failed to load services", "error");
@@ -215,6 +369,7 @@ async function loadServices() {
 function setStatus(msg, cls) {
     statusEl.textContent = msg;
     statusEl.className = "status" + (cls ? ` ${cls}` : "");
+    statusEl.dataset.baseStatus = msg;
 }
 
 function clearMap() {
@@ -228,6 +383,8 @@ function clearMap() {
         searchMarker = null;
     }
     resultsList.innerHTML = "";
+    currentResults = [];
+    delete statusEl.dataset.baseStatus;
 }
 
 function formatFieldValue(key, value) {
@@ -431,6 +588,8 @@ async function doSearch() {
                 fillOpacity: style.opacity,
                 weight: 1.5,
             });
+            // Stash status for cluster coloring
+            marker._record_status = record._status || null;
 
             // Tooltip on hover (brief)
             const summary = summarizeRecord(record);
@@ -540,6 +699,7 @@ async function doSearch() {
             resultsList.appendChild(legend);
         }
 
+        currentResults = [];
         for (const { marker, record } of markers) {
             const item = document.createElement("div");
             item.className = "result-item";
@@ -590,7 +750,9 @@ async function doSearch() {
             });
 
             resultsList.appendChild(item);
+            currentResults.push({ marker, record, item });
         }
+        filterResultsByViewport();
     } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
     }
@@ -598,6 +760,66 @@ async function doSearch() {
     searchBtn.disabled = false;
     checkReady();
 }
+
+// Show/hide sidebar result items based on current map viewport,
+// collapsing items that share the same map point.
+function filterResultsByViewport() {
+    if (currentResults.length === 0) return;
+    const bounds = map.getBounds();
+
+    // Clean up previous group badges
+    for (const el of resultsList.querySelectorAll(".location-group")) {
+        el.remove();
+    }
+
+    // Hide everything first, then group visible items by location
+    const locationGroups = new Map();
+    for (const entry of currentResults) {
+        entry.item.style.display = "none";
+        if (bounds.contains([entry.record._lat, entry.record._lng])) {
+            const locKey = `${entry.record._lat.toFixed(5)},${entry.record._lng.toFixed(5)}`;
+            if (!locationGroups.has(locKey)) locationGroups.set(locKey, []);
+            locationGroups.get(locKey).push(entry);
+        }
+    }
+
+    // For each visible location: show first item, add group toggle if stacked
+    let totalInView = 0;
+    for (const entries of locationGroups.values()) {
+        totalInView += entries.length;
+        entries[0].item.style.display = "";
+        if (entries.length > 1) {
+            const badge = document.createElement("div");
+            badge.className = "location-group";
+            badge.textContent = `+${entries.length - 1} more here`;
+            badge.addEventListener("click", () => {
+                const expanded = badge.dataset.expanded === "1";
+                for (let i = 1; i < entries.length; i++) {
+                    entries[i].item.style.display = expanded ? "none" : "";
+                }
+                badge.dataset.expanded = expanded ? "0" : "1";
+                badge.textContent = expanded
+                    ? `+${entries.length - 1} more here`
+                    : `\u25B4 collapse ${entries.length - 1}`;
+            });
+            entries[0].item.after(badge);
+        }
+    }
+
+    // Status: show locations count (matches dots on map)
+    const total = currentResults.length;
+    const base = statusEl.dataset.baseStatus || statusEl.textContent;
+    const dots = locationGroups.size;
+    if (totalInView < total) {
+        statusEl.textContent = dots < totalInView
+            ? `Showing ${dots} locations (${totalInView} records) in view`
+            : `Showing ${totalInView} in view`;
+    } else {
+        statusEl.textContent = base;
+    }
+}
+
+map.on("moveend", filterResultsByViewport);
 
 // URL state: push search params into the URL so links are shareable
 function pushSearchState(service, address, radius, dateFrom, dateTo) {
@@ -616,11 +838,11 @@ function loadSearchFromURL() {
     const dateTo = params.get("to");
 
     if (service && address) {
-        // Wait for services dropdown to populate, then set values and search
+        // Wait for services to load, then set values and search
         const waitForServices = setInterval(() => {
-            if (serviceSelect.querySelector(`option[value="${service}"]`)) {
+            if (allServices.find(s => s.name === service)) {
                 clearInterval(waitForServices);
-                serviceSelect.value = service;
+                selectService(service);
                 addressInput.value = address;
                 if (radius) {
                     radiusInput.value = radius;
@@ -642,10 +864,10 @@ function loadSearchFromURL() {
 window.addEventListener("popstate", loadSearchFromURL);
 
 async function applyPreset(preset) {
-    // Wait for services dropdown to be populated
+    // Wait for services to load
     await new Promise((resolve) => {
         const waitForServices = setInterval(() => {
-            if (serviceSelect.querySelector(`option[value="${preset.service}"]`)) {
+            if (allServices.find(s => s.name === preset.service)) {
                 clearInterval(waitForServices);
                 resolve();
             }
@@ -653,7 +875,7 @@ async function applyPreset(preset) {
         setTimeout(() => { clearInterval(waitForServices); resolve(); }, 5000);
     });
 
-    serviceSelect.value = preset.service;
+    selectService(preset.service);
     addressInput.value = preset.address;
     radiusInput.value = preset.radius;
     radiusSlider.value = preset.radius;

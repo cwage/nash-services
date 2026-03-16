@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { pickService } = require("./helpers");
 
 test.describe("Core functionality", () => {
   test("services load and dropdown populates", async ({ page }) => {
@@ -23,8 +24,7 @@ test.describe("Core functionality", () => {
       return sel && sel.options.length > 1;
     }, { timeout: 15000 });
 
-    await page.selectOption("#service-select",
-      "Metro_Nashville_Police_Department_Active_Dispatch_Table_view");
+    await pickService(page, "Metro_Nashville_Police_Department_Active_Dispatch_Table_view");
     await page.fill("#address-input", "211 Broadway, Nashville, TN");
     await page.fill("#radius-input", "5");
     await page.click("#search-btn");
@@ -35,7 +35,8 @@ test.describe("Core functionality", () => {
     }, { timeout: 30000 });
 
     const state = await page.evaluate(() => ({
-      status: document.getElementById("status").textContent,
+      status: document.getElementById("status").dataset.baseStatus ||
+              document.getElementById("status").textContent,
       resultItems: document.querySelectorAll(".result-item").length,
       incidentItems: document.querySelectorAll(".result-incident").length,
       timeItems: document.querySelectorAll(".result-time").length,
@@ -61,7 +62,7 @@ test.describe("Core functionality", () => {
       return sel && sel.options.length > 1;
     }, { timeout: 15000 });
 
-    await page.selectOption("#service-select", "Building_Permits_Issued_2");
+    await pickService(page, "Building_Permits_Issued_2");
     await page.fill("#address-input", "1000 Broadway, Nashville, TN");
     await page.fill("#radius-input", "1");
     await page.click("#search-btn");
@@ -72,7 +73,8 @@ test.describe("Core functionality", () => {
     }, { timeout: 30000 });
 
     const state = await page.evaluate(() => ({
-      status: document.getElementById("status").textContent,
+      status: document.getElementById("status").dataset.baseStatus ||
+              document.getElementById("status").textContent,
       resultItems: document.querySelectorAll(".result-item").length,
     }));
 
@@ -90,7 +92,7 @@ test.describe("Core functionality", () => {
       return sel && sel.options.length > 1;
     }, { timeout: 15000 });
 
-    await page.selectOption("#service-select", "Building_Permits_Issued_2");
+    await pickService(page, "Building_Permits_Issued_2");
     await page.fill("#address-input", "500 Church St");
     await page.fill("#radius-input", "1");
     await page.click("#search-btn");
@@ -116,7 +118,8 @@ test.describe("Core functionality", () => {
     const stateAfterReload = await page.evaluate(() => ({
       service: document.getElementById("service-select").value,
       address: document.getElementById("address-input").value,
-      status: document.getElementById("status").textContent,
+      status: document.getElementById("status").dataset.baseStatus ||
+              document.getElementById("status").textContent,
     }));
 
     console.log("After reload:", stateAfterReload);

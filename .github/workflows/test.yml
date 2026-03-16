@@ -32,17 +32,9 @@ jobs:
             sleep 5
           done
 
-      - name: Run Playwright tests
+      - name: Run Playwright tests (fast suite)
         run: |
-          docker compose exec -T -u "$(id -u):$(id -g)" playwright npx playwright test \
-            core.spec.js \
-            date-nav.spec.js \
-            date-filter-config.spec.js \
-            polled-services.spec.js \
-            bombing-preset.spec.js \
-            timezone.spec.js \
-            url-load.spec.js \
-            clear-map.spec.js
+          docker compose exec -T -u "$(id -u):$(id -g)" playwright npx playwright test --project=fast
 
       - name: Upload test results
         if: always()
