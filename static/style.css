@@ -379,29 +379,6 @@ button#search-btn:disabled {
     font-weight: 600;
 }
 
-/* Featured presets */
-#featured-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.featured-item {
-    display: block;
-    color: #4a9eff;
-    text-decoration: none;
-    font-size: 0.85em;
-    padding: 4px 8px;
-    background: #16213e;
-    border: 1px solid #333;
-    border-radius: 4px;
-    transition: border-color 0.15s;
-}
-
-.featured-item:hover {
-    border-color: #4a9eff;
-}
-
 /* Date range inputs */
 .date-row {
     display: flex;
@@ -445,59 +422,6 @@ button#search-btn:disabled {
 
 .date-nav:hover {
     border-color: #4a9eff;
-}
-
-/* Sector summary */
-.sector-summary {
-    background: #16213e;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 8px 10px;
-}
-
-.sector-title {
-    font-size: 0.7em;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 6px;
-}
-
-.sector-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 3px;
-    font-size: 0.8em;
-}
-
-.sector-name {
-    width: 75px;
-    flex-shrink: 0;
-    color: #ccc;
-}
-
-.sector-bar-bg {
-    flex: 1;
-    height: 10px;
-    background: #0d1525;
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.sector-bar {
-    height: 100%;
-    background: #f39c12;
-    border-radius: 2px;
-    transition: width 0.3s;
-}
-
-.sector-count {
-    width: 30px;
-    text-align: right;
-    color: #f39c12;
-    font-weight: 600;
-    flex-shrink: 0;
 }
 
 /* Sparkline / time histogram */

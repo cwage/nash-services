@@ -1,17 +1,5 @@
 const API = window.location.origin;
 
-// Featured presets — curated interesting visualizations
-const FEATURED = [
-    {
-        label: "2020 Christmas Bombing",
-        service: "Metro_Nashville_Police_Department_Calls_for_Service_2020",
-        address: "166 2nd Ave N, Nashville, TN",
-        radius: 2,
-        from: "2020-12-25T12:00",
-        to: "2020-12-25T14:00",
-    },
-];
-
 // Map setup - centered on Nashville
 const map = L.map("map").setView([36.16, -86.78], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -20,42 +8,46 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 // Layer groups for managing markers
-let markersLayer = L.markerClusterGroup({
-    maxClusterRadius: 40,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
-    zoomToBoundsOnClick: true,
-    disableClusteringAtZoom: 18,
-    iconCreateFunction: function (cluster) {
-        const children = cluster.getAllChildMarkers();
-        const count = children.length;
-        // Use the "hottest" status color in the cluster
-        const STATUS_PRIORITY = { live: 3, recent: 2, stale: 1 };
-        let hottest = "stale";
-        let isPolledCluster = false;
-        for (const m of children) {
-            const s = m._record_status;
-            if (s) {
-                isPolledCluster = true;
-                if ((STATUS_PRIORITY[s] || 0) > (STATUS_PRIORITY[hottest] || 0)) {
-                    hottest = s;
+function createClusterGroup() {
+    return L.markerClusterGroup({
+        maxClusterRadius: 40,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        disableClusteringAtZoom: 18,
+        iconCreateFunction: function (cluster) {
+            const children = cluster.getAllChildMarkers();
+            const count = children.length;
+            // Use the "hottest" status color in the cluster
+            const STATUS_PRIORITY = { live: 3, recent: 2, stale: 1 };
+            let hottest = "stale";
+            let isPolledCluster = false;
+            for (const m of children) {
+                const s = m._record_status;
+                if (s) {
+                    isPolledCluster = true;
+                    if ((STATUS_PRIORITY[s] || 0) > (STATUS_PRIORITY[hottest] || 0)) {
+                        hottest = s;
+                    }
                 }
             }
-        }
-        const colors = {
-            live:   { bg: "rgba(231,76,60,0.7)",  ring: "rgba(231,76,60,0.25)" },
-            recent: { bg: "rgba(243,156,18,0.7)",  ring: "rgba(243,156,18,0.25)" },
-            stale:  { bg: "rgba(149,165,166,0.7)", ring: "rgba(149,165,166,0.25)" },
-        };
-        const c = isPolledCluster ? (colors[hottest] || colors.stale) : { bg: "rgba(231,76,60,0.7)", ring: "rgba(231,76,60,0.25)" };
-        const size = count < 10 ? 36 : count < 50 ? 44 : 52;
-        return L.divIcon({
-            html: `<div style="background:${c.ring};border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;"><div style="background:${c.bg};color:#fff;font-weight:600;font-size:12px;border-radius:50%;width:${size - 10}px;height:${size - 10}px;display:flex;align-items:center;justify-content:center;">${count}</div></div>`,
-            className: "marker-cluster-custom",
-            iconSize: L.point(size, size),
-        });
-    },
-});
+            const colors = {
+                live:   { bg: "rgba(231,76,60,0.7)",  ring: "rgba(231,76,60,0.25)" },
+                recent: { bg: "rgba(243,156,18,0.7)",  ring: "rgba(243,156,18,0.25)" },
+                stale:  { bg: "rgba(149,165,166,0.7)", ring: "rgba(149,165,166,0.25)" },
+            };
+            const c = isPolledCluster ? (colors[hottest] || colors.stale) : { bg: "rgba(231,76,60,0.7)", ring: "rgba(231,76,60,0.25)" };
+            const size = count < 10 ? 36 : count < 50 ? 44 : 52;
+            return L.divIcon({
+                html: `<div style="background:${c.ring};border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;"><div style="background:${c.bg};color:#fff;font-weight:600;font-size:12px;border-radius:50%;width:${size - 10}px;height:${size - 10}px;display:flex;align-items:center;justify-content:center;">${count}</div></div>`,
+                className: "marker-cluster-custom",
+                iconSize: L.point(size, size),
+            });
+        },
+    });
+}
+
+let markersLayer = createClusterGroup();
 map.addLayer(markersLayer);
 let radiusCircle = null;
 let searchMarker = null;
@@ -379,8 +371,10 @@ function setStatus(msg, cls) {
     statusEl.dataset.baseStatus = msg;
 }
 
-function clearMap() {
-    markersLayer.clearLayers();
+function clearMap(useCluster = true) {
+    map.removeLayer(markersLayer);
+    markersLayer = useCluster ? createClusterGroup() : L.layerGroup();
+    map.addLayer(markersLayer);
     if (radiusCircle) {
         map.removeLayer(radiusCircle);
         radiusCircle = null;
@@ -557,6 +551,13 @@ async function doSearch() {
 
         currentFieldMeta = info.fields || null;
 
+        // Swap marker layer based on cluster flag from API
+        if (data.cluster === false) {
+            map.removeLayer(markersLayer);
+            markersLayer = L.layerGroup();
+            map.addLayer(markersLayer);
+        }
+
         const center = [data.coordinates.lat, data.coordinates.lng];
 
         // Add search location marker
@@ -613,46 +614,7 @@ async function doSearch() {
             markers.push({ marker, record });
         }
 
-        // Sector aggregate circles for records without precise location
-        // Use absolute scale so circles are comparable across time periods
-        const sectorMarkers = [];
-        if (data.sector_summary && data.sector_summary.length > 0) {
-            const maxSectorCount = Math.max(...data.sector_summary.map(s => s.count));
-            for (const sector of data.sector_summary) {
-                // Scale relative to max in this result set — makes dominant sector obvious
-                const relScale = sector.count / maxSectorCount;
-                // Radius: small sectors ~300m, dominant sector ~3000m
-                const circleRadius = 300 + relScale * relScale * 2700;
-                // Color: low counts = faded yellow, high counts = bright red-orange
-                const r = Math.round(230 + relScale * 25);
-                const g = Math.round(180 - relScale * 120);
-                const b = Math.round(50 - relScale * 30);
-                const color = `rgb(${r},${g},${b})`;
-
-                const sectorCircle = L.circle([sector.lat, sector.lng], {
-                    radius: circleRadius,
-                    color: color,
-                    fillColor: color,
-                    fillOpacity: 0.1 + relScale * 0.4,
-                    weight: 1.5 + relScale * 2,
-                });
-
-                sectorCircle.bindTooltip(
-                    `${sector.name} sector: ${sector.count} calls (no precise location)`,
-                    { direction: "top", offset: [0, -10] }
-                );
-                sectorCircle.bindPopup(
-                    `<strong>${sector.name} Sector</strong><br>` +
-                    `${sector.count} call(s) without precise location<br>` +
-                    `<em style="color:#999">Shown at sector centroid</em>`
-                );
-
-                sectorCircle.addTo(markersLayer);
-                sectorMarkers.push(sectorCircle);
-            }
-        }
-
-        // Fit map to radius circle and markers only (not distant sector circles)
+        // Fit map to radius circle and markers
         if (markers.length > 0) {
             const group = L.featureGroup([radiusCircle, ...markers.map(m => m.marker)]);
             map.fitBounds(group.getBounds().pad(0.1));
@@ -665,34 +627,10 @@ async function doSearch() {
             ? `${data.total_cached} cached` : `${data.total_fetched} fetched`;
         let statusMsg = `${data.count} result(s) found (${fetchedLabel})`;
         if (data.no_location > 0) {
-            const sectorCount = data.sector_summary
-                ? data.sector_summary.reduce((sum, s) => sum + s.count, 0) : 0;
             statusMsg += ` · ${data.no_location} without location`;
-            if (sectorCount > 0) {
-                statusMsg += ` (${sectorCount} by sector)`;
-            }
         }
         setStatus(statusMsg);
         resultsList.innerHTML = "";
-
-        // Sector summary in sidebar
-        if (data.sector_summary && data.sector_summary.length > 0) {
-            const sectorDiv = document.createElement("div");
-            sectorDiv.className = "sector-summary";
-            sectorDiv.innerHTML = `<div class="sector-title">Calls by sector (no precise location)</div>`;
-            // Absolute scale: 200 calls = 100% bar width
-            for (const sector of data.sector_summary) {
-                const pct = Math.min(100, (sector.count / 200) * 100);
-                const row = document.createElement("div");
-                row.className = "sector-row";
-                row.innerHTML = `
-                    <span class="sector-name">${sector.name}</span>
-                    <div class="sector-bar-bg"><div class="sector-bar" style="width:${pct}%"></div></div>
-                    <span class="sector-count">${sector.count}</span>`;
-                sectorDiv.appendChild(row);
-            }
-            resultsList.appendChild(sectorDiv);
-        }
 
         // Legend for polled services
         if (isPolled && markers.length > 0) {
@@ -870,51 +808,6 @@ function loadSearchFromURL() {
 // Handle browser back/forward
 window.addEventListener("popstate", loadSearchFromURL);
 
-async function applyPreset(preset) {
-    // Wait for services to load
-    await new Promise((resolve) => {
-        const waitForServices = setInterval(() => {
-            if (allServices.find(s => s.name === preset.service)) {
-                clearInterval(waitForServices);
-                resolve();
-            }
-        }, 100);
-        setTimeout(() => { clearInterval(waitForServices); resolve(); }, 5000);
-    });
-
-    selectService(preset.service);
-    addressInput.value = preset.address;
-    radiusInput.value = preset.radius;
-    radiusSlider.value = preset.radius;
-
-    // Get bounds from the dataset, then force preset dates
-    await updateDateRange(true);
-    // Force preset dates after updateDateRange completes
-    if (preset.from) dateFromInput.value = preset.from;
-    if (preset.to) dateToInput.value = preset.to;
-    dateRangeDiv.style.display = "";
-    checkReady();
-    doSearch();
-}
-
-function buildFeaturedList() {
-    const list = document.getElementById("featured-list");
-    for (const preset of FEATURED) {
-        const item = document.createElement("a");
-        item.className = "featured-item";
-        item.href = "#";
-        item.textContent = preset.label;
-        item.addEventListener("click", (e) => {
-            e.preventDefault();
-            // Clear any URL state so loadSearchFromURL doesn't interfere
-            history.replaceState(null, "", window.location.pathname);
-            applyPreset(preset);
-        });
-        list.appendChild(item);
-    }
-}
-
 // Init
 loadServices();
-buildFeaturedList();
 loadSearchFromURL();

@@ -305,8 +305,14 @@ def get_service_meta(service_name: str, layer: int = 0) -> Optional[ServiceMeta]
 def fetch_records(service_name: str, layer: int = 0, max_records: int = 1000,
                   order_by: Optional[str] = None,
                   date_from: Optional[str] = None, date_to: Optional[str] = None,
-                  date_field: Optional[str] = None) -> list[dict]:
-    """Fetch records from a service. Returns list of attribute dicts with optional geometry."""
+                  date_field: Optional[str] = None,
+                  center: Optional["Coordinates"] = None,
+                  radius_miles: Optional[float] = None) -> list[dict]:
+    """Fetch records from a service. Returns list of attribute dicts with optional geometry.
+
+    If center and radius_miles are provided, applies a server-side spatial
+    filter so ArcGIS only returns records within the radius.
+    """
     url = f"{ARCGIS_BASE}/{service_name}/FeatureServer/{layer}/query"
 
     where = "1=1"
@@ -329,6 +335,15 @@ def fetch_records(service_name: str, layer: int = 0, max_records: int = 1000,
     }
     if order_by:
         params["orderByFields"] = order_by
+
+    # Server-side spatial filter: point + radius
+    if center and radius_miles:
+        params["geometry"] = f"{center.lng},{center.lat}"
+        params["geometryType"] = "esriGeometryPoint"
+        params["inSR"] = "4326"
+        params["spatialRel"] = "esriSpatialRelIntersects"
+        params["distance"] = radius_miles
+        params["units"] = "esriSRUnit_StatuteMile"
 
     try:
         resp = requests.get(url, params=params, timeout=30)
@@ -426,45 +441,6 @@ def _format_record(record: dict, meta: ServiceMeta, distance: Optional[float] = 
     return out
 
 
-# MNPD sector approximate centroids (WGS84)
-MNPD_SECTOR_CENTROIDS = {
-    "C":  {"lat": 36.162, "lng": -86.781, "name": "Central"},
-    "E":  {"lat": 36.175, "lng": -86.715, "name": "East"},
-    "H":  {"lat": 36.175, "lng": -86.615, "name": "Hermitage"},
-    "M":  {"lat": 36.255, "lng": -86.710, "name": "Madison"},
-    "MT": {"lat": 36.150, "lng": -86.810, "name": "Midtown"},
-    "N":  {"lat": 36.230, "lng": -86.830, "name": "North"},
-    "S":  {"lat": 36.080, "lng": -86.730, "name": "South"},
-    "W":  {"lat": 36.130, "lng": -86.920, "name": "West"},
-    "TE": {"lat": 36.160, "lng": -86.780, "name": "Task Force / Extra"},
-}
-
-
-def _build_sector_summary(records: list[dict]) -> list[dict]:
-    """Group records without geometry by MNPD Sector field, return counts
-    with centroid coordinates for map visualization."""
-    from collections import Counter
-    sectors = Counter()
-    for r in records:
-        sector = (r.get("Sector") or "").strip()
-        if sector and sector in MNPD_SECTOR_CENTROIDS:
-            sectors[sector] += 1
-
-    if not sectors:
-        return []
-
-    result = []
-    for sector, count in sectors.most_common():
-        centroid = MNPD_SECTOR_CENTROIDS[sector]
-        result.append({
-            "sector": sector,
-            "name": centroid["name"],
-            "count": count,
-            "lat": centroid["lat"],
-            "lng": centroid["lng"],
-        })
-    return result
-
 
 def _build_time_histogram(records: list[dict], date_field: str) -> list[dict]:
     """Build a time histogram from records, auto-selecting bucket size."""
@@ -545,21 +521,27 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
         date_field = catalog["date_field"]
         order_by = f"{date_field} DESC"
 
+    # Use server-side spatial filtering for all services with geometry
+    spatial_center = query_coords if meta.has_geometry else None
+    spatial_radius = radius_miles if meta.has_geometry else None
+
     records = fetch_records(service_name, layer=layer, max_records=max_records,
                             order_by=order_by, date_from=date_from,
-                            date_to=date_to, date_field=date_field)
+                            date_to=date_to, date_field=date_field,
+                            center=spatial_center, radius_miles=spatial_radius)
 
     nearby = []
     no_location = 0
-    no_location_records = []
     for record in records:
         record_coords = _get_record_coords(record, meta)
         if record_coords is None:
             no_location += 1
-            no_location_records.append(record)
             continue
         dist = haversine_miles(query_coords.lat, query_coords.lng,
                                record_coords.lat, record_coords.lng)
+        # When server-side spatial filter is active, ArcGIS already filtered
+        # by radius — but we still compute exact haversine and apply the cutoff
+        # since ArcGIS uses envelope intersection (slightly larger than circle)
         if dist <= radius_miles:
             nearby.append(_format_record(record, meta, distance=dist, coords=record_coords))
 
@@ -576,13 +558,9 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
         "no_location": no_location,
         "has_geometry": meta.has_geometry,
         "address_field": meta.address_field,
+        "cluster": catalog.get("cluster", True) if catalog else True,
         "records": nearby,
     }
-
-    # Sector summary for records without geometry
-    sector_summary = _build_sector_summary(no_location_records)
-    if sector_summary:
-        result["sector_summary"] = sector_summary
 
     # Time histogram from ALL fetched records (not just nearby)
     if meta.date_fields:

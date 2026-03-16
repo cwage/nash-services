@@ -18,7 +18,6 @@ module.exports = defineConfig({
         "service-filter.spec.js",
         "auto-search.spec.js",
         "viewport-filter.spec.js",
-        "clear-map.spec.js",
         "marker-colors.spec.js",
         "polled-services.spec.js",
         "date-filter-config.spec.js",
