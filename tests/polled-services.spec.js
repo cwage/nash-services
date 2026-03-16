@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { pickService } = require("./helpers");
 
 const POLLED_SERVICES = [
   { name: "Metro_Nashville_Police_Department_Active_Dispatch_Table_view", desc: "MNPD active dispatch" },
@@ -18,7 +19,7 @@ test.describe("Polled/cached services", () => {
     test(`${svc.desc} returns cached results without date picker`, async ({ page }) => {
       test.setTimeout(60000);
 
-      await page.selectOption("#service-select", svc.name);
+      await pickService(page, svc.name);
       // Wait for updateDateRange to complete
       await page.waitForTimeout(2000);
 

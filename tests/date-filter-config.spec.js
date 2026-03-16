@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { pickService } = require("./helpers");
 
 // Services that have date_field configured in services.yml
 const DATE_SERVICES = [
@@ -26,7 +27,7 @@ test.describe("Date filter configuration", () => {
   for (const svc of DATE_SERVICES) {
     test(`${svc.desc} shows date picker with correct field`, async ({ page }) => {
       test.setTimeout(30000);
-      await page.selectOption("#service-select", svc.name);
+      await pickService(page, svc.name);
 
       // Wait for updateDateRange to fetch info and populate
       await page.waitForFunction(() => {
@@ -54,7 +55,7 @@ test.describe("Date filter configuration", () => {
   for (const svc of NO_DATE_SERVICES) {
     test(`${svc.desc} hides date picker`, async ({ page }) => {
       test.setTimeout(30000);
-      await page.selectOption("#service-select", svc.name);
+      await pickService(page, svc.name);
 
       // Wait for the info fetch to complete
       await page.waitForTimeout(2000);
@@ -77,7 +78,7 @@ test.describe("Date filter configuration", () => {
     test.setTimeout(30000);
 
     // Select a service with dates
-    await page.selectOption("#service-select", "MNPD_Calls_for_Service_2025_view");
+    await pickService(page, "MNPD_Calls_for_Service_2025_view");
     await page.waitForFunction(() => {
       return document.getElementById("date-range").style.display !== "none";
     }, { timeout: 15000 });
@@ -87,7 +88,7 @@ test.describe("Date filter configuration", () => {
     expect(fromBefore).toBeTruthy();
 
     // Switch to a service without dates
-    await page.selectOption("#service-select", "Library_Facilities");
+    await pickService(page, "Library_Facilities");
     await page.waitForFunction(() => {
       return document.getElementById("date-range").style.display === "none";
     }, { timeout: 15000 });
@@ -97,7 +98,7 @@ test.describe("Date filter configuration", () => {
     test.setTimeout(30000);
 
     // Select 311 current year
-    await page.selectOption("#service-select", "hubNashville_311_Service_Requests_Current_Year_view");
+    await pickService(page, "hubNashville_311_Service_Requests_Current_Year_view");
     await page.waitForFunction(() => {
       return document.getElementById("date-range").style.display !== "none";
     }, { timeout: 15000 });
@@ -105,7 +106,7 @@ test.describe("Date filter configuration", () => {
     const firstFrom = await page.inputValue("#date-from");
 
     // Switch to building permits — dates should update
-    await page.selectOption("#service-select", "Building_Permits_Issued_2");
+    await pickService(page, "Building_Permits_Issued_2");
     await page.waitForFunction((oldFrom) => {
       const val = document.getElementById("date-from").value;
       return val && val !== oldFrom;
