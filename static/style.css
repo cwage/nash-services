@@ -141,6 +141,11 @@ select:focus, input:focus {
     border-color: #4a9eff;
 }
 
+input.input-required {
+    border-color: #e74c3c;
+    box-shadow: 0 0 0 1px rgba(231, 76, 60, 0.3);
+}
+
 select optgroup {
     color: #4a9eff;
     font-style: normal;

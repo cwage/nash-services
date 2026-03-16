@@ -65,6 +65,12 @@ def _persist_geocode(key: str, coords: Optional["Coordinates"]):
         pass
 
 
+@dataclass
+class Coordinates:
+    lat: float
+    lng: float
+
+
 _init_geocode_db()
 
 # Cache for service metadata (schema doesn't change often)
@@ -86,12 +92,6 @@ def _load_catalog() -> list[dict]:
     except (FileNotFoundError, yaml.YAMLError):
         _services_catalog = []
     return _services_catalog
-
-
-@dataclass
-class Coordinates:
-    lat: float
-    lng: float
 
 
 @dataclass
