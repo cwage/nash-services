@@ -117,7 +117,11 @@ const servicesWithDates = new Set();
 
 // Enable search when both service and address are filled
 function checkReady() {
-    searchBtn.disabled = !serviceSelect.value || !addressInput.value.trim();
+    const hasService = !!serviceSelect.value;
+    const hasAddress = !!addressInput.value.trim();
+    searchBtn.disabled = !hasService || !hasAddress;
+    // Highlight address field when it's the only thing blocking search
+    addressInput.classList.toggle("input-required", hasService && !hasAddress);
 }
 serviceSelect.addEventListener("change", () => {
     checkReady();
@@ -322,14 +326,17 @@ serviceSearch.addEventListener("input", () => {
     openServiceDropdown();
 });
 
+let _blurTimeout = null;
+
 serviceSearch.addEventListener("focus", () => {
+    if (_blurTimeout) { clearTimeout(_blurTimeout); _blurTimeout = null; }
     buildServicePanel(filterServices(serviceSearch.value.trim()));
     openServiceDropdown();
 });
 
 serviceSearch.addEventListener("blur", () => {
     // Small delay so mousedown on option fires first
-    setTimeout(closeServiceDropdown, 150);
+    _blurTimeout = setTimeout(() => { closeServiceDropdown(); _blurTimeout = null; }, 150);
 });
 
 serviceSearch.addEventListener("keydown", (e) => {

@@ -182,13 +182,14 @@ test.describe("Viewport filtering of sidebar results", () => {
       console.log(`After expanding: ${expandedItems} visible`);
       expect(expandedItems).toBeGreaterThan(visibleItems);
 
-      // Click again to collapse
+      // Click again to collapse — should return to original visible count
       await page.click(".location-group");
       const collapsedItems = await page.evaluate(() =>
         Array.from(document.querySelectorAll(".result-item"))
           .filter(el => el.style.display !== "none").length
       );
-      expect(collapsedItems).toBeLessThan(expandedItems);
+      expect(collapsedItems).toBeLessThanOrEqual(expandedItems);
+      expect(collapsedItems).toBe(visibleItems);
     } else {
       // No stacking — all items visible, which is fine for unique-coordinate data
       expect(visibleItems).toBe(totalItems);
