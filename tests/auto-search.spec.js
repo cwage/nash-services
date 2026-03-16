@@ -54,15 +54,19 @@ test.describe("Auto-search on input changes", () => {
 
     // Change radius — triggers auto-search via 'change' event
     await page.fill("#radius-input", "5");
-    await page.locator("#radius-input").blur();
+    // Dispatch change event explicitly (blur may not fire reliably in CI)
+    await page.evaluate(() => {
+      document.getElementById("radius-input").dispatchEvent(new Event("change"));
+    });
 
-    // Verify a new search fires by watching for the loading state
-    // then completion — don't compare counts since they may be equal
+    // Wait for the "Searching..." loading state to appear then resolve
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      // URL should now reflect radius=5
-      return s.includes("result(s) found") &&
-        window.location.search.includes("radius=5");
+      return s.includes("Searching");
+    }, { timeout: 5000 });
+    await page.waitForFunction(() => {
+      const base = document.getElementById("status").dataset.baseStatus || "";
+      return base.includes("result(s) found");
     }, { timeout: 30000 });
 
     const url = page.url();

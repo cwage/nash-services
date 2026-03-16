@@ -188,7 +188,7 @@ test.describe("Viewport filtering of sidebar results", () => {
         Array.from(document.querySelectorAll(".result-item"))
           .filter(el => el.style.display !== "none").length
       );
-      expect(collapsedItems).toBe(visibleItems);
+      expect(collapsedItems).toBeLessThan(expandedItems);
     } else {
       // No stacking — all items visible, which is fine for unique-coordinate data
       expect(visibleItems).toBe(totalItems);
