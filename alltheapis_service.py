@@ -337,7 +337,7 @@ def fetch_records(service_name: str, layer: int = 0, max_records: int = 1000,
         params["orderByFields"] = order_by
 
     # Server-side spatial filter: point + radius
-    if center and radius_miles:
+    if center is not None and radius_miles is not None and radius_miles > 0:
         params["geometry"] = f"{center.lng},{center.lat}"
         params["geometryType"] = "esriGeometryPoint"
         params["inSR"] = "4326"

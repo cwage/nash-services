@@ -48,6 +48,7 @@ function createClusterGroup() {
 }
 
 let markersLayer = createClusterGroup();
+let markersLayerIsClustered = true;
 map.addLayer(markersLayer);
 let radiusCircle = null;
 let searchMarker = null;
@@ -372,9 +373,14 @@ function setStatus(msg, cls) {
 }
 
 function clearMap(useCluster = true) {
-    map.removeLayer(markersLayer);
-    markersLayer = useCluster ? createClusterGroup() : L.layerGroup();
-    map.addLayer(markersLayer);
+    if (useCluster !== markersLayerIsClustered) {
+        map.removeLayer(markersLayer);
+        markersLayer = useCluster ? createClusterGroup() : L.layerGroup();
+        markersLayerIsClustered = useCluster;
+        map.addLayer(markersLayer);
+    } else {
+        markersLayer.clearLayers();
+    }
     if (radiusCircle) {
         map.removeLayer(radiusCircle);
         radiusCircle = null;
@@ -521,7 +527,7 @@ async function doSearch() {
 
     if (!service || !address) return;
 
-    clearMap();
+    clearMap(true);
     setStatus("Searching...", "loading");
     searchBtn.disabled = true;
     pushSearchState(service, address, radius, dateFrom, dateTo);
@@ -551,12 +557,8 @@ async function doSearch() {
 
         currentFieldMeta = info.fields || null;
 
-        // Swap marker layer based on cluster flag from API
-        if (data.cluster === false) {
-            map.removeLayer(markersLayer);
-            markersLayer = L.layerGroup();
-            map.addLayer(markersLayer);
-        }
+        // Switch layer type if clustering mode changed
+        clearMap(data.cluster !== false);
 
         const center = [data.coordinates.lat, data.coordinates.lng];
 
