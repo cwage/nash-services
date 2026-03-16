@@ -41,7 +41,8 @@ test.describe("Polled/cached services", () => {
 
       // Should have results from cache
       const state = await page.evaluate(() => ({
-        status: document.getElementById("status").textContent,
+        status: document.getElementById("status").dataset.baseStatus ||
+                document.getElementById("status").textContent,
         resultItems: document.querySelectorAll(".result-item").length,
       }));
 
@@ -68,7 +69,8 @@ test.describe("Polled/cached services", () => {
     }, { timeout: 30000 });
 
     const state = await page.evaluate(() => ({
-      status: document.getElementById("status").textContent,
+      status: document.getElementById("status").dataset.baseStatus ||
+              document.getElementById("status").textContent,
       dateRangeVisible: document.getElementById("date-range").style.display !== "none",
       resultItems: document.querySelectorAll(".result-item").length,
     }));

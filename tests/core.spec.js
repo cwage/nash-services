@@ -35,7 +35,8 @@ test.describe("Core functionality", () => {
     }, { timeout: 30000 });
 
     const state = await page.evaluate(() => ({
-      status: document.getElementById("status").textContent,
+      status: document.getElementById("status").dataset.baseStatus ||
+              document.getElementById("status").textContent,
       resultItems: document.querySelectorAll(".result-item").length,
       incidentItems: document.querySelectorAll(".result-incident").length,
       timeItems: document.querySelectorAll(".result-time").length,
@@ -72,7 +73,8 @@ test.describe("Core functionality", () => {
     }, { timeout: 30000 });
 
     const state = await page.evaluate(() => ({
-      status: document.getElementById("status").textContent,
+      status: document.getElementById("status").dataset.baseStatus ||
+              document.getElementById("status").textContent,
       resultItems: document.querySelectorAll(".result-item").length,
     }));
 
@@ -116,7 +118,8 @@ test.describe("Core functionality", () => {
     const stateAfterReload = await page.evaluate(() => ({
       service: document.getElementById("service-select").value,
       address: document.getElementById("address-input").value,
-      status: document.getElementById("status").textContent,
+      status: document.getElementById("status").dataset.baseStatus ||
+              document.getElementById("status").textContent,
     }));
 
     console.log("After reload:", stateAfterReload);
