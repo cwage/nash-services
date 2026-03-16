@@ -28,7 +28,7 @@ def _init_geocode_db():
     """Ensure the geocode_cache table exists and load into memory."""
     import sqlite3
     try:
-        conn = sqlite3.connect(_GEOCODE_DB)
+        conn = sqlite3.connect(_GEOCODE_DB, timeout=5)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS geocode_cache (
                 cache_key TEXT PRIMARY KEY,
@@ -52,7 +52,7 @@ def _persist_geocode(key: str, coords: Optional["Coordinates"]):
     """Write a geocode result to SQLite for persistence."""
     import sqlite3
     try:
-        conn = sqlite3.connect(_GEOCODE_DB)
+        conn = sqlite3.connect(_GEOCODE_DB, timeout=5)
         lat = coords.lat if coords else None
         lng = coords.lng if coords else None
         conn.execute(

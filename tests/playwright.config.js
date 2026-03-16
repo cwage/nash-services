@@ -20,6 +20,8 @@ module.exports = defineConfig({
         "viewport-filter.spec.js",
         "clear-map.spec.js",
         "marker-colors.spec.js",
+        "polled-services.spec.js",
+        "date-filter-config.spec.js",
       ],
     },
     {

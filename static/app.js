@@ -295,14 +295,6 @@ function buildServicePanel(services) {
         }
     }
 
-    // Also keep the hidden select in sync for any code that reads it
-    serviceSelect.innerHTML = '<option value="">Select a dataset...</option>';
-    for (const svc of services) {
-        const option = document.createElement("option");
-        option.value = svc.name;
-        option.textContent = svc.description || svc.name;
-        serviceSelect.appendChild(option);
-    }
 }
 
 // Filter services by search query
@@ -356,6 +348,15 @@ async function loadServices() {
         allServices = data.services;
         for (const svc of allServices) {
             if (svc.poll) pollableServices.add(svc.name);
+        }
+
+        // Populate hidden select once with all services (never rebuilt on filter)
+        serviceSelect.innerHTML = '<option value="">Select a dataset...</option>';
+        for (const svc of allServices) {
+            const option = document.createElement("option");
+            option.value = svc.name;
+            option.textContent = svc.description || svc.name;
+            serviceSelect.appendChild(option);
         }
 
         buildServicePanel(allServices);
