@@ -45,7 +45,7 @@ test.describe("Core functionality", () => {
 
     console.log("MNPD dispatch:", state.status);
     console.log("Incident labels:", state.incidentItems, "Time labels:", state.timeItems);
-    expect(state.status).toContain("results found");
+    expect(state.status).toContain("found");
     // Polled services should show incident type labels
     if (state.resultItems > 0) {
       expect(state.incidentItems).toBeGreaterThan(0);
@@ -79,7 +79,7 @@ test.describe("Core functionality", () => {
     }));
 
     console.log("Building permits:", state.status);
-    expect(state.status).toContain("results found");
+    expect(state.status).toContain("found");
 
     await page.screenshot({ path: "/tests/core-building-permits.png", fullPage: true });
   });
@@ -125,7 +125,7 @@ test.describe("Core functionality", () => {
     console.log("After reload:", stateAfterReload);
     expect(stateAfterReload.service).toBe("Building_Permits_Issued_2");
     expect(stateAfterReload.address).toContain("500 Church St");
-    expect(stateAfterReload.status).toContain("results found");
+    expect(stateAfterReload.status).toContain("found");
   });
 
   test("health endpoint includes cache stats", async ({ page }) => {

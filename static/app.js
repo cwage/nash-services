@@ -532,6 +532,7 @@ async function doSearch() {
     if (!service || !address) return;
 
     clearMap(true);
+    clearTimeout(_radiusSearchTimeout);
     emptyState.style.display = "none";
     setStatus("Searching...", "loading");
     searchBtn.disabled = true;
@@ -640,7 +641,7 @@ async function doSearch() {
         resultsList.innerHTML = "";
 
         // Helpful hint when no results
-        if (markers.length === 0) {
+        if (data.count === 0) {
             const hint = document.createElement("div");
             hint.className = "empty-results-hint";
             const radius = parseFloat(radiusInput.value) || 2;
@@ -944,13 +945,13 @@ document.addEventListener("keydown", (e) => {
 for (const btn of document.querySelectorAll(".suggested-btn")) {
     btn.addEventListener("click", () => {
         const service = btn.dataset.service;
-        // Wait for services to be loaded if needed
+        let attempts = 0;
         const trySelect = () => {
             if (allServices.find(s => s.name === service)) {
                 selectService(service);
                 updateDateRange();
                 addressInput.focus();
-            } else {
+            } else if (attempts++ < 50) {
                 setTimeout(trySelect, 100);
             }
         };
