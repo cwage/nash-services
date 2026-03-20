@@ -16,7 +16,34 @@ All `flyctl` commands run via Docker Compose, no local install needed.
 1. Create the app: `docker compose run --rm fly launch`
 2. Create the persistent volume: `docker compose run --rm fly volumes create nash_cache --region iad --size 1`
 3. Set secrets: `docker compose run --rm fly secrets set GITHUB_TOKEN=...`
-4. Deploy: `docker compose run --rm fly deploy`
+4. Generate a deploy token (see below) and add it to `.env`
+5. Deploy: `docker compose run --rm fly deploy`
+
+## Deploy Tokens
+
+The `fly` docker-compose service authenticates via `FLY_API_TOKEN` in your `.env` file. Each workstation needs its own token.
+
+To generate a token, first authenticate interactively:
+
+```
+docker compose run --rm fly auth login
+```
+
+Then create a deploy token scoped to the app:
+
+```
+docker compose run --rm fly tokens create deploy
+```
+
+Copy the full token (starts with `FlyV1 fm2_...`) and add it to your `.env`:
+
+```
+FLY_API_TOKEN="FlyV1 fm2_..."
+```
+
+By default, deploy tokens don't expire. To set an expiry, pass `-x <duration>` (e.g. `-x 720h` for 30 days). You can list and revoke tokens from the Fly dashboard under **Apps > nash-services > Tokens**.
+
+If you lose a token or need to set up a new workstation, just repeat the steps above — the old token continues to work until revoked.
 
 ## Local Development
 
