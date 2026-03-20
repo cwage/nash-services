@@ -552,6 +552,12 @@ button#search-btn:disabled {
     border-color: #4a9eff;
 }
 
+.bug-disclaimer {
+    font-size: 0.82em;
+    color: #e0c56a;
+    margin-bottom: 12px;
+}
+
 .bug-debug-preview {
     background: #0d1525;
     border: 1px solid #333;

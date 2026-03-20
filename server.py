@@ -170,8 +170,10 @@ def report_bug():
     description = data["description"].strip()[:2000]
     debug_context = data.get("debug_context", "")[:5000]
 
-    # Rate limit (checked after validation so bad requests don't burn cooldown)
-    ip = request.remote_addr
+    # Rate limit by real client IP (X-Forwarded-For behind reverse proxy)
+    ip = request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown"
+    if "," in ip:
+        ip = ip.split(",", 1)[0].strip()
     now = time.time()
     last = _bug_report_timestamps.get(ip, 0)
     if now - last < BUG_REPORT_COOLDOWN:
@@ -184,7 +186,7 @@ def report_bug():
     # Add server-side debug info
     user_agent = request.headers.get("User-Agent", "unknown")
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-    server_context = f"Client IP: {ip}\nUser-Agent: {user_agent}\nTimestamp: {timestamp}"
+    server_context = f"User-Agent: {user_agent}\nTimestamp: {timestamp}"
 
     body = (
         f"## User Report\n\n```\n{description}\n```\n\n"
