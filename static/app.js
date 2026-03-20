@@ -470,8 +470,8 @@ function buildPopupContent(record, isPolled) {
             ? encodeURIComponent(record._address + ", Nashville, TN")
             : `${lat},${lng}`;
         html += `<div class="popup-directions">`;
-        html += `<a href="https://www.openstreetmap.org/directions?from=&to=${lat},${lng}" target="_blank">Directions (OSM)</a>`;
-        html += ` | <a href="https://www.google.com/maps/dir/?api=1&destination=${dest}" target="_blank">Google Maps</a>`;
+        html += `<a href="https://www.openstreetmap.org/directions?from=&to=${lat},${lng}" target="_blank" rel="noopener noreferrer">Directions (OSM)</a>`;
+        html += ` | <a href="https://www.google.com/maps/dir/?api=1&destination=${dest}" target="_blank" rel="noopener noreferrer">Google Maps</a>`;
         html += `</div>`;
     }
 
@@ -641,7 +641,7 @@ async function doSearch() {
         // Build status message
         const count = data.count;
         const noun = count === 1 ? "result" : "results";
-        lastSearchAddr = addressInput.value.split(",")[0].trim();
+        lastSearchAddr = addressInput.value.split(",")[0].trim() || data.query_address || addressInput.value.trim();
         setStatus(`${count} ${noun} near ${lastSearchAddr}`);
         resultsList.innerHTML = "";
 
