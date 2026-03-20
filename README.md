@@ -12,7 +12,7 @@ Built on a curated catalog of Nashville ArcGIS FeatureServer datasets — police
 docker compose up -d
 ```
 
-Then open [http://localhost:5000](http://localhost:5000).
+Then open [http://localhost:5010](http://localhost:5010).
 
 Pre-built images are also available:
 
