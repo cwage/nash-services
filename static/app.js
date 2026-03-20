@@ -55,6 +55,8 @@ let searchMarker = null;
 
 // Current result set for viewport filtering
 let currentResults = []; // [{ marker, record, item }]
+let lastSearchAddr = "";
+let unmappedCount = 0;
 
 // Field metadata for the current service (aliases, date fields)
 let currentFieldMeta = null;
@@ -427,6 +429,12 @@ function getMarkerStyle(record, isPolled) {
     return STATUS_COLORS[record._status] || DEFAULT_COLOR;
 }
 
+function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 function buildPopupContent(record, isPolled) {
     let html = '<table class="popup-table">';
 
@@ -434,12 +442,12 @@ function buildPopupContent(record, isPolled) {
     if (isPolled && record._status) {
         const label = STATUS_LABELS[record._status] || record._status;
         const style = STATUS_COLORS[record._status] || DEFAULT_COLOR;
-        html += `<tr><td>Status</td><td><span class="status-badge" style="background:${style.fill}">${label}</span></td></tr>`;
+        html += `<tr><td>Status</td><td><span class="status-badge" style="background:${style.fill}">${escapeHtml(label)}</span></td></tr>`;
     }
 
     // Show distance first if present
     if (record._distance_miles !== undefined) {
-        html += `<tr><td>Distance</td><td><strong>${record._distance_miles} mi</strong></td></tr>`;
+        html += `<tr><td>Distance</td><td><strong>${escapeHtml(String(record._distance_miles))} mi</strong></td></tr>`;
     }
 
     // Show all non-internal fields
@@ -448,7 +456,7 @@ function buildPopupContent(record, isPolled) {
         const formatted = formatFieldValue(key, value);
         if (formatted === null || formatted.trim() === "") continue;
         const alias = getFieldAlias(key);
-        html += `<tr><td>${alias}</td><td>${formatted}</td></tr>`;
+        html += `<tr><td>${escapeHtml(alias)}</td><td>${escapeHtml(formatted)}</td></tr>`;
     }
 
     html += "</table>";
@@ -462,8 +470,8 @@ function buildPopupContent(record, isPolled) {
             ? encodeURIComponent(record._address + ", Nashville, TN")
             : `${lat},${lng}`;
         html += `<div class="popup-directions">`;
-        html += `<a href="https://www.openstreetmap.org/directions?from=&to=${lat},${lng}" target="_blank">Directions (OSM)</a>`;
-        html += ` | <a href="https://www.google.com/maps/dir/?api=1&destination=${dest}" target="_blank">Google Maps</a>`;
+        html += `<a href="https://www.openstreetmap.org/directions?from=&to=${lat},${lng}" target="_blank" rel="noopener noreferrer">Directions (OSM)</a>`;
+        html += ` | <a href="https://www.google.com/maps/dir/?api=1&destination=${dest}" target="_blank" rel="noopener noreferrer">Google Maps</a>`;
         html += `</div>`;
     }
 
@@ -594,7 +602,7 @@ async function doSearch() {
         // Add result markers
         const markers = [];
         for (const record of data.records) {
-            if (!record._lat || !record._lng) continue;
+            if (record._lat == null || record._lng == null) continue;
 
             const style = getMarkerStyle(record, isPolled);
             const marker = L.circleMarker([record._lat, record._lng], {
@@ -633,11 +641,8 @@ async function doSearch() {
         // Build status message
         const count = data.count;
         const noun = count === 1 ? "result" : "results";
-        let statusMsg = `${count} ${noun} found`;
-        if (data.no_location > 0) {
-            statusMsg += ` · ${data.no_location} without location`;
-        }
-        setStatus(statusMsg);
+        lastSearchAddr = addressInput.value.split(",")[0].trim() || data.query_address || addressInput.value.trim();
+        setStatus(`${count} ${noun} near ${lastSearchAddr}`);
         resultsList.innerHTML = "";
 
         // Helpful hint when no results
@@ -718,6 +723,40 @@ async function doSearch() {
             resultsList.appendChild(item);
             currentResults.push({ marker, record, item });
         }
+
+        // Add unmapped records (no lat/lng) to sidebar
+        const unmapped = data.records.filter(r => r._lat == null || r._lng == null);
+        unmappedCount = unmapped.length;
+        for (const record of unmapped) {
+            const item = document.createElement("div");
+            item.className = "result-item";
+
+            if (record._distance_miles !== undefined) {
+                const distSpan = document.createElement("span");
+                distSpan.className = "result-distance";
+                distSpan.textContent = `${record._distance_miles} mi`;
+                item.appendChild(distSpan);
+                item.appendChild(document.createTextNode(" "));
+            }
+
+            const summarySpan = document.createElement("span");
+            summarySpan.className = "result-summary";
+            summarySpan.textContent = summarizeRecord(record);
+            item.appendChild(summarySpan);
+
+            const badge = document.createElement("span");
+            badge.className = "no-pin-badge";
+            badge.textContent = "\uD83D\uDCCD"; // 📍 pin emoji
+            badge.title = "Address couldn't be mapped";
+            item.appendChild(badge);
+
+            item.addEventListener("click", () => {
+                openRecordModal(record, isPolled);
+            });
+
+            resultsList.appendChild(item);
+        }
+
         filterResultsByViewport();
     } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
@@ -772,11 +811,13 @@ function filterResultsByViewport() {
         }
     }
 
-    // Status: show how many are visible vs total
-    const total = currentResults.length;
+    // Status: show how many are visible vs total (include unmapped in both sides)
+    const mappedTotal = currentResults.length;
+    const total = mappedTotal + unmappedCount;
+    const visible = totalInView + unmappedCount;
     const base = statusEl.dataset.baseStatus || statusEl.textContent;
-    if (totalInView < total) {
-        statusEl.textContent = `Showing ${totalInView} of ${total} results in view`;
+    if (totalInView < mappedTotal) {
+        statusEl.textContent = `Showing ${visible} of ${total} near ${lastSearchAddr}`;
     } else {
         statusEl.textContent = base;
     }
@@ -938,6 +979,39 @@ aboutOverlay.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && aboutOverlay.classList.contains("open")) {
         closeAboutModal();
+    }
+});
+
+// --- Record detail modal ---
+const recordOverlay = document.getElementById("record-modal-overlay");
+const recordModalBody = document.getElementById("record-modal-body");
+const recordModalClose = document.getElementById("record-modal-close");
+let recordPreviousFocus = null;
+
+function openRecordModal(record, isPolled) {
+    recordPreviousFocus = document.activeElement;
+    const addr = record._address || "";
+    const notice = addr
+        ? `<div class="no-location-notice">Address could not be mapped to coordinates. <a href="https://www.google.com/maps/search/${encodeURIComponent(addr + ", Nashville, TN")}" target="_blank" rel="noopener noreferrer">Look up on Google Maps</a></div>`
+        : '<div class="no-location-notice">This record has no location data and cannot be shown on the map.</div>';
+    recordModalBody.innerHTML = notice + buildPopupContent(record, isPolled);
+    recordOverlay.classList.add("open");
+    setTimeout(() => recordModalClose.focus(), 0);
+}
+
+function closeRecordModal() {
+    recordOverlay.classList.remove("open");
+    if (recordPreviousFocus) recordPreviousFocus.focus();
+    recordPreviousFocus = null;
+}
+
+recordModalClose.addEventListener("click", closeRecordModal);
+recordOverlay.addEventListener("click", (e) => {
+    if (e.target === recordOverlay) closeRecordModal();
+});
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && recordOverlay.classList.contains("open")) {
+        closeRecordModal();
     }
 });
 

@@ -377,14 +377,14 @@ def fetch_records(service_name: str, layer: int = 0, max_records: int = 1000,
 def _get_record_coords(record: dict, meta: ServiceMeta) -> Optional[Coordinates]:
     """Extract or geocode coordinates for a record."""
     # First try geometry from the service
-    if meta.has_geometry and record.get("_geom_x") and record.get("_geom_y"):
+    if meta.has_geometry and record.get("_geom_x") is not None and record.get("_geom_y") is not None:
         return Coordinates(lat=record["_geom_y"], lng=record["_geom_x"])
 
     # Try explicit lat/lng fields
     if meta.lat_field and meta.lng_field:
         lat = record.get(meta.lat_field)
         lng = record.get(meta.lng_field)
-        if lat and lng:
+        if lat is not None and lng is not None:
             try:
                 return Coordinates(lat=float(lat), lng=float(lng))
             except (ValueError, TypeError):
@@ -531,11 +531,11 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
                             center=spatial_center, radius_miles=spatial_radius)
 
     nearby = []
-    no_location = 0
+    unmapped = []
     for record in records:
         record_coords = _get_record_coords(record, meta)
         if record_coords is None:
-            no_location += 1
+            unmapped.append(_format_record(record, meta))
             continue
         dist = haversine_miles(query_coords.lat, query_coords.lng,
                                record_coords.lat, record_coords.lng)
@@ -554,12 +554,12 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
         "coordinates": {"lat": query_coords.lat, "lng": query_coords.lng},
         "radius_miles": radius_miles,
         "total_fetched": len(records),
-        "count": len(nearby),
-        "no_location": no_location,
+        "count": len(nearby) + len(unmapped),
+        "no_location": len(unmapped),
         "has_geometry": meta.has_geometry,
         "address_field": meta.address_field,
         "cluster": catalog.get("cluster", True) if catalog else True,
-        "records": nearby,
+        "records": nearby + unmapped,
     }
 
     # Time histogram from ALL fetched records (not just nearby)
@@ -601,11 +601,15 @@ def find_nearby_cached(service_name: str, address: str, radius_miles: float = 2.
         cached_events = []
 
     nearby = []
-    no_location = 0
+    unmapped = []
     for evt in cached_events:
         record_coords = _get_record_coords(evt, meta)
         if record_coords is None:
-            no_location += 1
+            formatted = _format_record(evt, meta)
+            formatted["_status"] = evt.get("_status", "live")
+            formatted["_first_seen"] = evt.get("_first_seen")
+            formatted["_last_seen"] = evt.get("_last_seen")
+            unmapped.append(formatted)
             continue
 
         dist = haversine_miles(query_coords.lat, query_coords.lng,
@@ -626,11 +630,11 @@ def find_nearby_cached(service_name: str, address: str, radius_miles: float = 2.
         "coordinates": {"lat": query_coords.lat, "lng": query_coords.lng},
         "radius_miles": radius_miles,
         "total_cached": len(cached_events),
-        "count": len(nearby),
-        "no_location": no_location,
+        "count": len(nearby) + len(unmapped),
+        "no_location": len(unmapped),
         "has_geometry": meta.has_geometry,
         "address_field": meta.address_field,
-        "records": nearby,
+        "records": nearby + unmapped,
     }
 
     if meta.date_fields:

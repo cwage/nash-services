@@ -18,7 +18,7 @@ test.describe("Auto-search on input changes", () => {
     await page.click("#search-btn");
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("found");
+      return s && s.includes("near");
     }, { timeout: 30000 });
 
     const firstStatus = await page.evaluate(() =>
@@ -32,14 +32,14 @@ test.describe("Auto-search on input changes", () => {
     // Wait for new search to complete
     await page.waitForFunction((prev) => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("found") && s !== prev;
+      return s && s.includes("near") && s !== prev;
     }, firstStatus, { timeout: 30000 });
 
     const newStatus = await page.evaluate(() =>
       document.getElementById("status").textContent
     );
     console.log("After dataset switch:", newStatus);
-    expect(newStatus).toContain("found");
+    expect(newStatus).toContain("near");
   });
 
   test("changing radius auto-searches when address is filled", async ({ page }) => {
@@ -49,7 +49,7 @@ test.describe("Auto-search on input changes", () => {
     await page.click("#search-btn");
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("found");
+      return s && s.includes("near");
     }, { timeout: 30000 });
 
     // Change radius — triggers auto-search via 'change' event
@@ -66,7 +66,7 @@ test.describe("Auto-search on input changes", () => {
     }, { timeout: 5000 });
     await page.waitForFunction(() => {
       const base = document.getElementById("status").dataset.baseStatus || "";
-      return base.includes("found");
+      return base.includes("near");
     }, { timeout: 30000 });
 
     const url = page.url();
@@ -85,7 +85,7 @@ test.describe("Auto-search on input changes", () => {
     const status = await page.evaluate(() =>
       document.getElementById("status").textContent
     );
-    expect(status).not.toContain("found");
+    expect(status).not.toContain("near");
     expect(status).not.toContain("Searching");
   });
 });
