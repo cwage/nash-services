@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 const { pickService } = require("./helpers");
 
 test.describe("Record deep-linking", () => {
-  test("clicking a sidebar result adds record param to URL", async ({ page }) => {
+  test("clicking a mapped sidebar result adds record param to URL", async ({ page }) => {
     test.setTimeout(60000);
     await page.goto("/");
     await page.waitForFunction(() => {
@@ -18,8 +18,11 @@ test.describe("Record deep-linking", () => {
     await page.waitForSelector(".result-item", { timeout: 30000 });
     await page.waitForTimeout(1000);
 
-    // Click first result and wait for popup to appear
-    await page.click(".result-item");
+    // Click a mapped result (no pin badge = has coordinates)
+    const mappedItem = await page.$(".result-item:not(:has(.no-pin-badge))");
+    if (!mappedItem) { test.skip(); return; }
+
+    await mappedItem.click();
     await page.waitForSelector(".leaflet-popup-content", { timeout: 5000 });
     await page.waitForTimeout(500);
 
@@ -47,8 +50,11 @@ test.describe("Record deep-linking", () => {
     await page.waitForSelector(".result-item", { timeout: 30000 });
     await page.waitForTimeout(1000);
 
-    // Click to open popup
-    await page.click(".result-item");
+    // Click a mapped result
+    const mappedItem = await page.$(".result-item:not(:has(.no-pin-badge))");
+    if (!mappedItem) { test.skip(); return; }
+
+    await mappedItem.click();
     await page.waitForSelector(".leaflet-popup-content", { timeout: 5000 });
     await page.waitForTimeout(500);
 
@@ -68,12 +74,36 @@ test.describe("Record deep-linking", () => {
   test("loading a URL with record param opens that record popup", async ({ page }) => {
     test.setTimeout(60000);
 
-    // Use record index 0 (first result) — always valid if there are results
-    await page.goto("/?service=Metro_Nashville_Police_Department_Active_Dispatch_Table_view&address=1000+Broadway,+Nashville,+TN&radius=5&record=0");
-    await page.waitForSelector(".result-item", { timeout: 30000 });
+    // First, search and click a mapped result to get a valid record index
+    await page.goto("/");
+    await page.waitForFunction(() => {
+      const sel = document.getElementById("service-select");
+      return sel && sel.options.length > 1;
+    }, { timeout: 15000 });
 
-    // Wait for the popup to appear (restore logic)
+    await pickService(page, "Metro_Nashville_Police_Department_Active_Dispatch_Table_view");
+    await page.fill("#address-input", "1000 Broadway, Nashville, TN");
+    await page.fill("#radius-input", "5");
+    await page.click("#search-btn");
+
+    await page.waitForSelector(".result-item", { timeout: 30000 });
+    await page.waitForTimeout(1000);
+
+    const mappedItem = await page.$(".result-item:not(:has(.no-pin-badge))");
+    if (!mappedItem) { test.skip(); return; }
+
+    await mappedItem.click();
+    await page.waitForSelector(".leaflet-popup-content", { timeout: 5000 });
+
+    const initialUrl = new URL(page.url());
+    const recordParam = initialUrl.searchParams.get("record");
+    expect(recordParam).toBeTruthy();
+
+    // Reload with that record param — popup should re-open
+    await page.goto(initialUrl.toString());
+    await page.waitForSelector(".result-item", { timeout: 30000 });
     await page.waitForSelector(".leaflet-popup-content", { timeout: 10000 });
+
     const popup = await page.$(".leaflet-popup-content");
     expect(popup).toBeTruthy();
   });

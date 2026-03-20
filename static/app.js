@@ -54,8 +54,8 @@ let radiusCircle = null;
 let searchMarker = null;
 
 // Current result set for viewport filtering
-let currentResults = []; // [{ marker, record, item }]
-let currentUnmapped = []; // [{ record, isPolled }]
+let currentResults = []; // [{ marker, record, item, index }]
+let currentUnmapped = []; // [{ record, isPolled, index }]
 let lastSearchAddr = "";
 let unmappedCount = 0;
 
