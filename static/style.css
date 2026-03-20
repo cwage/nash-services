@@ -123,6 +123,7 @@ select, input[type="text"], input[type="number"] {
 .service-dropdown .dropdown-info-btn {
     color: #d4a054;
     font-size: 0.8em;
+    background: none;
     border: 1px solid #a07830;
     border-radius: 50%;
     width: 1.4em;
@@ -132,6 +133,8 @@ select, input[type="text"], input[type="number"] {
     justify-content: center;
     flex-shrink: 0;
     line-height: 1;
+    padding: 0;
+    cursor: pointer;
 }
 
 .service-dropdown .dropdown-info-btn:hover {
@@ -165,6 +168,7 @@ select, input[type="text"], input[type="number"] {
     margin-left: 6px;
     cursor: pointer;
     font-size: 0.85em;
+    background: none;
     border: 1px solid #a07830;
     border-radius: 50%;
     width: 1.3em;
@@ -174,6 +178,7 @@ select, input[type="text"], input[type="number"] {
     justify-content: center;
     vertical-align: middle;
     line-height: 1;
+    padding: 0;
 }
 
 #service-selected .dataset-info-btn:hover {

@@ -258,10 +258,12 @@ function selectService(serviceName) {
         });
         serviceSelectedEl.appendChild(clearBtn);
         if (svc && svc.about) {
-            const infoBtn = document.createElement("span");
+            const infoBtn = document.createElement("button");
+            infoBtn.type = "button";
             infoBtn.className = "dataset-info-btn";
             infoBtn.textContent = "?";
             infoBtn.title = "About this dataset";
+            infoBtn.setAttribute("aria-label", "About this dataset");
             infoBtn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 openDatasetInfoModal(svc);
@@ -303,12 +305,17 @@ function buildServicePanel(services) {
             opt.appendChild(label);
 
             if (svc.about) {
-                const infoBtn = document.createElement("span");
+                const infoBtn = document.createElement("button");
+                infoBtn.type = "button";
                 infoBtn.className = "dropdown-info-btn";
                 infoBtn.textContent = "?";
                 infoBtn.title = "About this dataset";
+                infoBtn.setAttribute("aria-label", "About this dataset");
                 infoBtn.addEventListener("mousedown", (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
+                });
+                infoBtn.addEventListener("click", (e) => {
                     e.stopPropagation();
                     openDatasetInfoModal(svc);
                 });
@@ -1132,9 +1139,13 @@ function openDatasetInfoModal(svc) {
     datasetInfoPreviousFocus = document.activeElement;
     datasetInfoTitle.textContent = svc.description || svc.name;
 
-    let html = "";
+    datasetInfoBody.innerHTML = "";
+
     if (svc.about) {
-        html += `<p class="info-about">${svc.about}</p>`;
+        const p = document.createElement("p");
+        p.className = "info-about";
+        p.textContent = svc.about;
+        datasetInfoBody.appendChild(p);
     }
 
     // Derive tips from metadata
@@ -1146,21 +1157,22 @@ function openDatasetInfoModal(svc) {
         tips.push("This dataset uses line or polygon geometry. Map pins show the center point of each feature.");
     }
     if (svc.date_field) {
-        tips.push("Supports date range filtering — use the date pickers to narrow results to a specific time period.");
+        tips.push("Supports date range filtering \u2014 use the date pickers to narrow results to a specific time period.");
     }
     if (svc.poll) {
-        tips.push("Live data — updated automatically every few minutes.");
+        tips.push("Live data \u2014 updated automatically every few minutes.");
     }
 
     if (tips.length) {
-        html += '<ul class="info-tips">';
+        const ul = document.createElement("ul");
+        ul.className = "info-tips";
         for (const tip of tips) {
-            html += `<li>${tip}</li>`;
+            const li = document.createElement("li");
+            li.textContent = tip;
+            ul.appendChild(li);
         }
-        html += "</ul>";
+        datasetInfoBody.appendChild(ul);
     }
-
-    datasetInfoBody.innerHTML = html;
     datasetInfoOverlay.classList.add("open");
     setTimeout(() => datasetInfoCloseBtn.focus(), 0);
 }
