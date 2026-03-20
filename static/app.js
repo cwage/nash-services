@@ -567,8 +567,6 @@ async function doSearch() {
 
         if (data.error) {
             setStatus(data.error, "error");
-            searchBtn.disabled = false;
-            mapLoading.classList.remove("active");
             return;
         }
 
@@ -763,11 +761,11 @@ async function doSearch() {
         filterResultsByViewport();
     } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
+    } finally {
+        searchBtn.disabled = false;
+        mapLoading.classList.remove("active");
+        checkReady();
     }
-
-    searchBtn.disabled = false;
-    mapLoading.classList.remove("active");
-    checkReady();
 }
 
 // Show/hide sidebar result items based on current map viewport,
