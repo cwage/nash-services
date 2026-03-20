@@ -458,18 +458,20 @@ button#search-btn:disabled {
     margin-top: 2px;
 }
 
-/* Bug report link */
-#bug-report-link {
+/* Sidebar footer links */
+#sidebar-footer-links {
     margin-top: auto;
     padding-top: 16px;
-    text-align: center;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
 }
 
-#bug-report-link button {
+#sidebar-footer-links button {
     color: #4a9eff;
-    font-size: 0.85em;
+    font-size: 0.82em;
     background: none;
-    padding: 8px 16px;
+    padding: 8px 14px;
     border: 1px solid #333;
     border-radius: 4px;
     cursor: pointer;
@@ -477,7 +479,7 @@ button#search-btn:disabled {
     transition: background 0.15s, border-color 0.15s;
 }
 
-#bug-report-link button:hover {
+#sidebar-footer-links button:hover {
     background: #16213e;
     border-color: #4a9eff;
 }
@@ -623,6 +625,97 @@ button#search-btn:disabled {
 
 .bug-status.success {
     color: #2ecc71;
+}
+
+/* About modal */
+.about-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.about-modal-overlay.open {
+    display: flex;
+}
+
+.about-modal {
+    background: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 24px;
+    width: 520px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    color: #e0e0e0;
+}
+
+.about-modal h2 {
+    color: #fff;
+    font-size: 1.2em;
+    margin-bottom: 16px;
+}
+
+.about-content h3 {
+    color: #4a9eff;
+    font-size: 0.9em;
+    margin: 16px 0 6px;
+}
+
+.about-content p {
+    font-size: 0.85em;
+    line-height: 1.5;
+    color: #ccc;
+    margin-bottom: 8px;
+}
+
+.about-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 4px 0 8px;
+}
+
+.about-content li {
+    font-size: 0.85em;
+    line-height: 1.5;
+    color: #ccc;
+    padding: 3px 0;
+}
+
+.about-content a {
+    color: #4a9eff;
+    text-decoration: none;
+}
+
+.about-content a:hover {
+    text-decoration: underline;
+}
+
+.about-modal-actions {
+    margin-top: 16px;
+    text-align: right;
+}
+
+#about-close {
+    background: #333;
+    color: #e0e0e0;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+#about-close:hover {
+    background: #444;
 }
 
 /* Mobile */

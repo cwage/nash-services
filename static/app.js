@@ -895,6 +895,27 @@ bugForm.addEventListener("submit", async (e) => {
     }
 });
 
+// --- About modal ---
+const aboutOverlay = document.getElementById("about-modal-overlay");
+
+document.getElementById("about-open").addEventListener("click", () => {
+    aboutOverlay.classList.add("open");
+});
+
+document.getElementById("about-close").addEventListener("click", () => {
+    aboutOverlay.classList.remove("open");
+});
+
+aboutOverlay.addEventListener("click", (e) => {
+    if (e.target === aboutOverlay) aboutOverlay.classList.remove("open");
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && aboutOverlay.classList.contains("open")) {
+        aboutOverlay.classList.remove("open");
+    }
+});
+
 // Init
 loadServices();
 loadSearchFromURL();
