@@ -3,8 +3,12 @@ Nash Services - Flask server for generic Nashville Open Data proximity search.
 """
 
 import logging
+import os
+import time
+from datetime import datetime, timezone
 from functools import partial
 from flask import Flask, request, jsonify, send_from_directory
+import requests as http_requests
 from alltheapis_service import (
     find_nearby, fetch_records, get_service_meta,
     list_services, search_services, _format_record,
@@ -143,6 +147,72 @@ def records(service_name):
         "count": len(formatted),
         "records": formatted,
     })
+
+
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+GITHUB_REPO = os.environ.get("GITHUB_REPO", "cwage/nash-services")
+
+# Simple rate limit: track last submission time per IP
+_bug_report_timestamps = {}
+BUG_REPORT_COOLDOWN = 60  # seconds
+
+
+@app.route("/report-bug", methods=["POST"])
+def report_bug():
+    """Create a GitHub issue from a user bug report."""
+    if not GITHUB_TOKEN:
+        return jsonify({"error": "Bug reporting is not configured"}), 503
+
+    data = request.get_json(silent=True)
+    if not data or not data.get("description", "").strip():
+        return jsonify({"error": "Description is required"}), 400
+
+    description = data["description"].strip()[:2000]
+    debug_context = data.get("debug_context", "")[:5000]
+
+    # Rate limit (checked after validation so bad requests don't burn cooldown)
+    ip = request.remote_addr
+    now = time.time()
+    last = _bug_report_timestamps.get(ip, 0)
+    if now - last < BUG_REPORT_COOLDOWN:
+        return jsonify({"error": "Please wait a minute before submitting another report"}), 429
+    _bug_report_timestamps[ip] = now
+
+    # Sanitize @-mentions so they don't ping GitHub users
+    description = description.replace("@", "@ ")
+
+    # Add server-side debug info
+    user_agent = request.headers.get("User-Agent", "unknown")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    server_context = f"Client IP: {ip}\nUser-Agent: {user_agent}\nTimestamp: {timestamp}"
+
+    body = (
+        f"## User Report\n\n```\n{description}\n```\n\n"
+        f"## Debug Context\n\n```\n{debug_context}\n```\n\n"
+        f"## Server Context\n\n```\n{server_context}\n```"
+    )
+
+    try:
+        resp = http_requests.post(
+            f"https://api.github.com/repos/{GITHUB_REPO}/issues",
+            headers={
+                "Authorization": f"token {GITHUB_TOKEN}",
+                "Accept": "application/vnd.github.v3+json",
+            },
+            json={
+                "title": f"Bug report: {description[:80]}",
+                "body": body,
+                "labels": ["bug-report"],
+            },
+            timeout=10,
+        )
+        if resp.status_code == 201:
+            return jsonify({"ok": True})
+        logging.error("GitHub API error: %s %s", resp.status_code, resp.text)
+        return jsonify({"error": "Failed to submit report"}), 502
+    except Exception:
+        logging.exception("Error creating GitHub issue")
+        return jsonify({"error": "Failed to submit report"}), 502
 
 
 if __name__ == "__main__":

@@ -458,6 +458,167 @@ button#search-btn:disabled {
     margin-top: 2px;
 }
 
+/* Bug report link */
+#bug-report-link {
+    margin-top: auto;
+    padding-top: 16px;
+    text-align: center;
+}
+
+#bug-report-link button {
+    color: #4a9eff;
+    font-size: 0.85em;
+    background: none;
+    padding: 8px 16px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+#bug-report-link button:hover {
+    background: #16213e;
+    border-color: #4a9eff;
+}
+
+/* Bug report modal */
+.bug-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.bug-modal-overlay.open {
+    display: flex;
+}
+
+.bug-modal {
+    background: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 24px;
+    width: 480px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    color: #e0e0e0;
+}
+
+.bug-modal h2 {
+    color: #fff;
+    font-size: 1.2em;
+    margin-bottom: 8px;
+}
+
+.bug-modal-desc {
+    font-size: 0.82em;
+    color: #888;
+    margin-bottom: 16px;
+    line-height: 1.4;
+}
+
+.bug-modal label {
+    font-size: 0.8em;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.bug-modal textarea {
+    width: 100%;
+    background: #16213e;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 12px;
+}
+
+.bug-modal textarea:focus {
+    outline: none;
+    border-color: #4a9eff;
+}
+
+.bug-debug-preview {
+    background: #0d1525;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 0.72em;
+    color: #666;
+    margin-bottom: 16px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.bug-modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.bug-modal-actions button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    cursor: pointer;
+    font-weight: 600;
+    border: none;
+}
+
+#bug-cancel {
+    background: #333;
+    color: #e0e0e0;
+}
+
+#bug-cancel:hover {
+    background: #444;
+}
+
+#bug-submit {
+    background: #4a9eff;
+    color: #fff;
+}
+
+#bug-submit:hover {
+    background: #3a8eef;
+}
+
+#bug-submit:disabled {
+    background: #333;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.bug-status {
+    font-size: 0.82em;
+    margin-top: 8px;
+    min-height: 1.2em;
+}
+
+.bug-status.error {
+    color: #ff6b6b;
+}
+
+.bug-status.success {
+    color: #2ecc71;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
     body {

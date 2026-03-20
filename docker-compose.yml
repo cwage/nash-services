@@ -6,6 +6,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DISPATCH_CACHE_DB=/data/service_cache.db
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_REPO=${GITHUB_REPO:-cwage/nash-services}
     volumes:
       - ./data:/data
     user: "${UID:-1000}:${GID:-1000}"
