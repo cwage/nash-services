@@ -480,20 +480,11 @@ function buildPopupContent(record, isPolled) {
     return html;
 }
 
-// Extract a unique record ID from standard ArcGIS ID fields
-const RECORD_ID_FIELDS = ["OBJECTID", "ObjectId", "FID", "GlobalID"];
-function getRecordId(record) {
-    for (const field of RECORD_ID_FIELDS) {
-        if (record[field] != null) return String(record[field]);
-    }
-    return null;
-}
-
-// Update URL with selected record ID (or clear it)
-function setRecordInURL(recordId) {
+// Update URL with selected record index (or clear it)
+function setRecordInURL(index) {
     const params = new URLSearchParams(window.location.search);
-    if (recordId) {
-        params.set("record", recordId);
+    if (index != null) {
+        params.set("record", index);
     } else {
         params.delete("record");
     }
@@ -633,7 +624,8 @@ async function doSearch() {
 
         // Add result markers
         const markers = [];
-        for (const record of data.records) {
+        for (let i = 0; i < data.records.length; i++) {
+            const record = data.records[i];
             if (record._lat == null || record._lng == null) continue;
 
             const style = getMarkerStyle(record, isPolled);
@@ -659,14 +651,12 @@ async function doSearch() {
             marker.bindPopup(buildPopupContent(record, isPolled), { maxWidth: 350, maxHeight: 320 });
 
             // Update URL when popup opens/closes for deep-linking
-            marker.on("popupopen", () => {
-                const id = getRecordId(record);
-                if (id) setRecordInURL(id);
-            });
+            const recordIndex = i;
+            marker.on("popupopen", () => setRecordInURL(recordIndex));
             marker.on("popupclose", () => setRecordInURL(null));
 
             marker.addTo(markersLayer);
-            markers.push({ marker, record });
+            markers.push({ marker, record, index: i });
         }
 
         // Fit map to radius circle and markers (skip if restoring a saved viewport)
@@ -713,7 +703,7 @@ async function doSearch() {
         }
 
         currentResults = [];
-        for (const { marker, record } of markers) {
+        for (const { marker, record, index } of markers) {
             const item = document.createElement("div");
             item.className = "result-item";
 
@@ -762,15 +752,18 @@ async function doSearch() {
             });
 
             resultsList.appendChild(item);
-            currentResults.push({ marker, record, item });
+            currentResults.push({ marker, record, item, index });
         }
 
         // Add unmapped records (no lat/lng) to sidebar
-        const unmapped = data.records.filter(r => r._lat == null || r._lng == null);
-        unmappedCount = unmapped.length;
         currentUnmapped = [];
-        for (const record of unmapped) {
-            currentUnmapped.push({ record, isPolled });
+        unmappedCount = 0;
+        for (let i = 0; i < data.records.length; i++) {
+            const record = data.records[i];
+            if (record._lat != null && record._lng != null) continue;
+            unmappedCount++;
+            currentUnmapped.push({ record, isPolled, index: i });
+
             const item = document.createElement("div");
             item.className = "result-item";
 
@@ -793,8 +786,9 @@ async function doSearch() {
             badge.title = "Address couldn't be mapped";
             item.appendChild(badge);
 
+            const recordIndex = i;
             item.addEventListener("click", () => {
-                openRecordModal(record, isPolled);
+                openRecordModal(record, isPolled, recordIndex);
             });
 
             resultsList.appendChild(item);
@@ -803,18 +797,18 @@ async function doSearch() {
         filterResultsByViewport();
 
         // Deep-link: if URL has a record param, open that record's popup/modal
-        if (_restoreRecord) {
-            const targetId = _restoreRecord;
+        if (_restoreRecord != null) {
+            const targetIndex = _restoreRecord;
             _restoreRecord = null;
             // Try mapped records first
-            const mapped = currentResults.find(e => getRecordId(e.record) === targetId);
+            const mapped = currentResults.find(e => e.index === targetIndex);
             if (mapped) {
                 showMarkerPopup(mapped.marker);
             } else {
                 // Try unmapped records
-                const unmappedEntry = currentUnmapped.find(e => getRecordId(e.record) === targetId);
+                const unmappedEntry = currentUnmapped.find(e => e.index === targetIndex);
                 if (unmappedEntry) {
-                    openRecordModal(unmappedEntry.record, unmappedEntry.isPolled);
+                    openRecordModal(unmappedEntry.record, unmappedEntry.isPolled, unmappedEntry.index);
                 }
             }
         }
@@ -945,9 +939,12 @@ function loadSearchFromURL() {
             }
         }
 
-        // If URL has a record ID, open it after search completes
+        // If URL has a record index, open it after search completes
         if (record) {
-            _restoreRecord = record;
+            const parsedIndex = Number.parseInt(record, 10);
+            if (Number.isFinite(parsedIndex) && parsedIndex >= 0) {
+                _restoreRecord = parsedIndex;
+            }
         }
 
         // Wait for services to load, then set values and search
@@ -1096,7 +1093,7 @@ const recordModalBody = document.getElementById("record-modal-body");
 const recordModalClose = document.getElementById("record-modal-close");
 let recordPreviousFocus = null;
 
-function openRecordModal(record, isPolled) {
+function openRecordModal(record, isPolled, recordIndex) {
     recordPreviousFocus = document.activeElement;
     const addr = record._address || "";
     const notice = addr
@@ -1105,8 +1102,7 @@ function openRecordModal(record, isPolled) {
     recordModalBody.innerHTML = notice + buildPopupContent(record, isPolled);
     recordOverlay.classList.add("open");
     setTimeout(() => recordModalClose.focus(), 0);
-    const id = getRecordId(record);
-    if (id) setRecordInURL(id);
+    if (recordIndex != null) setRecordInURL(recordIndex);
 }
 
 function closeRecordModal() {
