@@ -54,7 +54,8 @@ let radiusCircle = null;
 let searchMarker = null;
 
 // Current result set for viewport filtering
-let currentResults = []; // [{ marker, record, item }]
+let currentResults = []; // [{ marker, record, item, index }]
+let currentUnmapped = []; // [{ record, isPolled, index }]
 let lastSearchAddr = "";
 let unmappedCount = 0;
 
@@ -479,6 +480,17 @@ function buildPopupContent(record, isPolled) {
     return html;
 }
 
+// Update URL with selected record index (or clear it)
+function setRecordInURL(index) {
+    const params = new URLSearchParams(window.location.search);
+    if (index != null) {
+        params.set("record", index);
+    } else {
+        params.delete("record");
+    }
+    history.replaceState(null, "", `?${params}`);
+}
+
 function summarizeRecord(record) {
     // Pick the first 2-3 non-null, non-internal, non-ID fields for a summary line
     const skip = new Set(["OBJECTID", "ObjectId", "GlobalID", "FID", "Shape__Area", "Shape__Length"]);
@@ -529,6 +541,16 @@ function buildSparkline(histogram) {
     container.appendChild(labels);
 
     return container;
+}
+
+// Zoom to uncluster a marker (if using MarkerCluster) and open its popup
+function showMarkerPopup(marker) {
+    if (markersLayerIsClustered) {
+        markersLayer.zoomToShowLayer(marker, () => marker.openPopup());
+    } else {
+        map.setView(marker.getLatLng(), Math.max(map.getZoom(), 16));
+        marker.openPopup();
+    }
 }
 
 async function doSearch() {
@@ -602,7 +624,8 @@ async function doSearch() {
 
         // Add result markers
         const markers = [];
-        for (const record of data.records) {
+        for (let i = 0; i < data.records.length; i++) {
+            const record = data.records[i];
             if (record._lat == null || record._lng == null) continue;
 
             const style = getMarkerStyle(record, isPolled);
@@ -627,8 +650,13 @@ async function doSearch() {
             // Popup on click (full details)
             marker.bindPopup(buildPopupContent(record, isPolled), { maxWidth: 350, maxHeight: 320 });
 
+            // Update URL when popup opens/closes for deep-linking
+            const recordIndex = i;
+            marker.on("popupopen", () => setRecordInURL(recordIndex));
+            marker.on("popupclose", () => setRecordInURL(null));
+
             marker.addTo(markersLayer);
-            markers.push({ marker, record });
+            markers.push({ marker, record, index: i });
         }
 
         // Fit map to radius circle and markers (skip if restoring a saved viewport)
@@ -675,7 +703,7 @@ async function doSearch() {
         }
 
         currentResults = [];
-        for (const { marker, record } of markers) {
+        for (const { marker, record, index } of markers) {
             const item = document.createElement("div");
             item.className = "result-item";
 
@@ -720,18 +748,22 @@ async function doSearch() {
             }
 
             item.addEventListener("click", () => {
-                map.setView([record._lat, record._lng], 16);
-                marker.openPopup();
+                showMarkerPopup(marker);
             });
 
             resultsList.appendChild(item);
-            currentResults.push({ marker, record, item });
+            currentResults.push({ marker, record, item, index });
         }
 
         // Add unmapped records (no lat/lng) to sidebar
-        const unmapped = data.records.filter(r => r._lat == null || r._lng == null);
-        unmappedCount = unmapped.length;
-        for (const record of unmapped) {
+        currentUnmapped = [];
+        unmappedCount = 0;
+        for (let i = 0; i < data.records.length; i++) {
+            const record = data.records[i];
+            if (record._lat != null && record._lng != null) continue;
+            unmappedCount++;
+            currentUnmapped.push({ record, isPolled, index: i });
+
             const item = document.createElement("div");
             item.className = "result-item";
 
@@ -754,14 +786,32 @@ async function doSearch() {
             badge.title = "Address couldn't be mapped";
             item.appendChild(badge);
 
+            const recordIndex = i;
             item.addEventListener("click", () => {
-                openRecordModal(record, isPolled);
+                openRecordModal(record, isPolled, recordIndex);
             });
 
             resultsList.appendChild(item);
         }
 
         filterResultsByViewport();
+
+        // Deep-link: if URL has a record param, open that record's popup/modal
+        if (_restoreRecord != null) {
+            const targetIndex = _restoreRecord;
+            _restoreRecord = null;
+            // Try mapped records first
+            const mapped = currentResults.find(e => e.index === targetIndex);
+            if (mapped) {
+                showMarkerPopup(mapped.marker);
+            } else {
+                // Try unmapped records
+                const unmappedEntry = currentUnmapped.find(e => e.index === targetIndex);
+                if (unmappedEntry) {
+                    openRecordModal(unmappedEntry.record, unmappedEntry.isPolled, unmappedEntry.index);
+                }
+            }
+        }
     } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
     } finally {
@@ -863,6 +913,8 @@ map.on("moveend", updateViewportInURL);
 
 // When loading from a URL with viewport params, skip fitBounds in doSearch
 let _restoreViewport = null;
+// When loading from a URL with a record param, open that record after search
+let _restoreRecord = null;
 
 function loadSearchFromURL() {
     const params = new URLSearchParams(window.location.search);
@@ -874,6 +926,7 @@ function loadSearchFromURL() {
     const lat = params.get("lat");
     const lng = params.get("lng");
     const zoom = params.get("z");
+    const record = params.get("record");
 
     if (service && address) {
         // If URL has viewport, restore it after search instead of auto-fitting
@@ -883,6 +936,14 @@ function loadSearchFromURL() {
             const parsedZoom = Number.parseInt(zoom, 10);
             if (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) && Number.isFinite(parsedZoom)) {
                 _restoreViewport = { lat: parsedLat, lng: parsedLng, zoom: parsedZoom };
+            }
+        }
+
+        // If URL has a record index, open it after search completes
+        if (record) {
+            const parsedIndex = Number.parseInt(record, 10);
+            if (Number.isFinite(parsedIndex) && parsedIndex >= 0) {
+                _restoreRecord = parsedIndex;
             }
         }
 
@@ -1032,7 +1093,7 @@ const recordModalBody = document.getElementById("record-modal-body");
 const recordModalClose = document.getElementById("record-modal-close");
 let recordPreviousFocus = null;
 
-function openRecordModal(record, isPolled) {
+function openRecordModal(record, isPolled, recordIndex) {
     recordPreviousFocus = document.activeElement;
     const addr = record._address || "";
     const notice = addr
@@ -1041,12 +1102,14 @@ function openRecordModal(record, isPolled) {
     recordModalBody.innerHTML = notice + buildPopupContent(record, isPolled);
     recordOverlay.classList.add("open");
     setTimeout(() => recordModalClose.focus(), 0);
+    if (recordIndex != null) setRecordInURL(recordIndex);
 }
 
 function closeRecordModal() {
     recordOverlay.classList.remove("open");
     if (recordPreviousFocus) recordPreviousFocus.focus();
     recordPreviousFocus = null;
+    setRecordInURL(null);
 }
 
 recordModalClose.addEventListener("click", closeRecordModal);
