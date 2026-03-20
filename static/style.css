@@ -109,6 +109,34 @@ select, input[type="text"], input[type="number"] {
     cursor: pointer;
     color: #e0e0e0;
     transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.service-dropdown .service-option-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.service-dropdown .dropdown-info-btn {
+    color: #666;
+    font-size: 0.8em;
+    border: 1px solid #444;
+    border-radius: 50%;
+    width: 1.4em;
+    height: 1.4em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.service-dropdown .dropdown-info-btn:hover {
+    color: #4a9eff;
+    border-color: #4a9eff;
 }
 
 .service-dropdown .service-option:hover {
@@ -130,6 +158,27 @@ select, input[type="text"], input[type="number"] {
 
 #service-selected .clear-service:hover {
     color: #e0e0e0;
+}
+
+#service-selected .dataset-info-btn {
+    color: #888;
+    margin-left: 6px;
+    cursor: pointer;
+    font-size: 0.85em;
+    border: 1px solid #555;
+    border-radius: 50%;
+    width: 1.3em;
+    height: 1.3em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+#service-selected .dataset-info-btn:hover {
+    color: #4a9eff;
+    border-color: #4a9eff;
 }
 
 select {
@@ -885,6 +934,88 @@ button#search-btn:disabled {
     padding: 8px 0;
     margin-bottom: 8px;
     border-bottom: 1px solid #333;
+}
+
+/* Dataset info modal */
+.dataset-info-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.dataset-info-overlay.open {
+    display: flex;
+}
+
+.dataset-info-modal {
+    background: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 24px;
+    width: 480px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    color: #e0e0e0;
+}
+
+.dataset-info-modal h2 {
+    color: #fff;
+    font-size: 1.2em;
+    margin-bottom: 16px;
+}
+
+.dataset-info-modal .info-about {
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: #ccc;
+    margin-bottom: 16px;
+}
+
+.dataset-info-modal .info-tips {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dataset-info-modal .info-tips li {
+    font-size: 0.85em;
+    line-height: 1.5;
+    color: #999;
+    padding: 4px 0;
+    padding-left: 1.2em;
+    text-indent: -1.2em;
+}
+
+.dataset-info-modal .info-tips li::before {
+    content: "\2022 ";
+    color: #4a9eff;
+}
+
+.dataset-info-actions {
+    margin-top: 16px;
+    text-align: right;
+}
+
+#dataset-info-close {
+    background: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+#dataset-info-close:hover {
+    background: #444;
 }
 
 /* Mobile */

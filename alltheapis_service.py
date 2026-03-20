@@ -187,9 +187,14 @@ def _svc_entry(svc: dict) -> dict:
         "name": svc["name"],
         "description": svc.get("description", ""),
         "category": svc.get("category", "Other"),
+        "mode": svc.get("mode", "point"),
     }
+    if svc.get("about"):
+        entry["about"] = svc["about"]
     if svc.get("poll"):
         entry["poll"] = True
+    if svc.get("date_field"):
+        entry["date_field"] = svc["date_field"]
     return entry
 
 
