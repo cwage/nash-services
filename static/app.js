@@ -93,6 +93,7 @@ const searchBtn = document.getElementById("search-btn");
 const statusEl = document.getElementById("status");
 const resultsList = document.getElementById("results-list");
 const emptyState = document.getElementById("empty-state");
+const mapLoading = document.getElementById("map-loading");
 
 // Keep slider and number input in sync, auto-search on change (debounced)
 let _radiusSearchTimeout = null;
@@ -544,6 +545,7 @@ async function doSearch() {
     emptyState.style.display = "none";
     setStatus("Searching...", "loading");
     searchBtn.disabled = true;
+    mapLoading.classList.add("active");
     pushSearchState(service, address, radius, dateFrom, dateTo);
 
     const isPolled = pollableServices.has(service);
@@ -566,6 +568,7 @@ async function doSearch() {
         if (data.error) {
             setStatus(data.error, "error");
             searchBtn.disabled = false;
+            mapLoading.classList.remove("active");
             return;
         }
 
@@ -763,6 +766,7 @@ async function doSearch() {
     }
 
     searchBtn.disabled = false;
+    mapLoading.classList.remove("active");
     checkReady();
 }
 
