@@ -878,7 +878,12 @@ function loadSearchFromURL() {
     if (service && address) {
         // If URL has viewport, restore it after search instead of auto-fitting
         if (lat && lng && zoom) {
-            _restoreViewport = { lat: parseFloat(lat), lng: parseFloat(lng), zoom: parseInt(zoom) };
+            const parsedLat = Number.parseFloat(lat);
+            const parsedLng = Number.parseFloat(lng);
+            const parsedZoom = Number.parseInt(zoom, 10);
+            if (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) && Number.isFinite(parsedZoom)) {
+                _restoreViewport = { lat: parsedLat, lng: parsedLng, zoom: parsedZoom };
+            }
         }
 
         // Wait for services to load, then set values and search
