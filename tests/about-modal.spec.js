@@ -67,3 +67,60 @@ test.describe("About modal", () => {
   });
 
 });
+
+test.describe("About modal auto-open on first visit", () => {
+  // Clear storageState so these tests simulate a new visitor
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => {
+      const sel = document.getElementById("service-select");
+      return sel && sel.options.length > 1;
+    }, { timeout: 15000 });
+  });
+
+  test("modal opens automatically when no localStorage flag is set", async ({ page }) => {
+    const overlay = page.locator("#about-modal-overlay");
+    await expect(overlay).toHaveClass(/open/);
+  });
+
+  test("modal does not auto-open on subsequent visits", async ({ page }) => {
+    // Manually set the flag as if user had visited before
+    await page.evaluate(() => localStorage.setItem("nashServicesVisited", "1"));
+    await page.reload();
+    await page.waitForFunction(() => {
+      const sel = document.getElementById("service-select");
+      return sel && sel.options.length > 1;
+    }, { timeout: 15000 });
+
+    const overlay = page.locator("#about-modal-overlay");
+    await expect(overlay).not.toHaveClass(/open/);
+  });
+
+  test("closing the modal sets the localStorage flag", async ({ page }) => {
+    const overlay = page.locator("#about-modal-overlay");
+    await expect(overlay).toHaveClass(/open/);
+
+    await page.click("#about-close");
+    await expect(overlay).not.toHaveClass(/open/);
+
+    const flag = await page.evaluate(() => localStorage.getItem("nashServicesVisited"));
+    expect(flag).toBe("1");
+  });
+
+  test("modal stays closed after reload once dismissed", async ({ page }) => {
+    // Close the auto-opened modal
+    await page.click("#about-close");
+
+    // Reload the page
+    await page.reload();
+    await page.waitForFunction(() => {
+      const sel = document.getElementById("service-select");
+      return sel && sel.options.length > 1;
+    }, { timeout: 15000 });
+
+    const overlay = page.locator("#about-modal-overlay");
+    await expect(overlay).not.toHaveClass(/open/);
+  });
+});

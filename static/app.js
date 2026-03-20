@@ -1115,6 +1115,7 @@ function closeAboutModal() {
     aboutOverlay.classList.remove("open");
     if (aboutPreviousFocus) aboutPreviousFocus.focus();
     aboutPreviousFocus = null;
+    try { localStorage.setItem("nashServicesVisited", "1"); } catch (_) {}
 }
 
 document.getElementById("about-open").addEventListener("click", openAboutModal);
@@ -1129,6 +1130,13 @@ document.addEventListener("keydown", (e) => {
         closeAboutModal();
     }
 });
+
+// Auto-show About modal on first visit
+try {
+    if (!localStorage.getItem("nashServicesVisited")) {
+        openAboutModal();
+    }
+} catch (_) {}
 
 // --- Dataset info modal ---
 const datasetInfoOverlay = document.getElementById("dataset-info-overlay");
