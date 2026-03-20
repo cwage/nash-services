@@ -8,6 +8,7 @@ module.exports = defineConfig({
     headless: true,
     screenshot: "on",
     trace: "on",
+    storageState: "./storage-state.json",
   },
   reporter: [["list"]],
   projects: [
