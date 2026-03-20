@@ -441,6 +441,7 @@ function clearMap(useCluster = true) {
     resultsList.innerHTML = "";
     currentResults = [];
     delete statusEl.dataset.baseStatus;
+    document.getElementById("share-btn").style.display = "none";
 }
 
 function formatFieldValue(key, value) {
@@ -836,6 +837,7 @@ async function doSearch() {
         }
 
         filterResultsByViewport();
+        document.getElementById("share-btn").style.display = "";
 
         // Deep-link: if URL has a record param, open that record's popup/modal
         if (_restoreRecord != null) {
@@ -1251,6 +1253,41 @@ for (const btn of document.querySelectorAll(".suggested-btn")) {
         trySelect();
     });
 }
+
+// Share button: create a short URL and copy to clipboard
+const shareBtn = document.getElementById("share-btn");
+const toastEl = document.getElementById("toast");
+
+function showToast(msg, duration = 2500) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("visible");
+    setTimeout(() => toastEl.classList.remove("visible"), duration);
+}
+
+shareBtn.addEventListener("click", async () => {
+    const qs = window.location.search.replace(/^\?/, "");
+    if (!qs) return;
+    shareBtn.disabled = true;
+    try {
+        const resp = await fetch(`${API}/s`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query_string: qs }),
+        });
+        const data = await resp.json();
+        if (data.error) {
+            showToast("Failed to create link");
+            return;
+        }
+        const shortUrl = `${window.location.origin}/s/${data.id}`;
+        await navigator.clipboard.writeText(shortUrl);
+        showToast("Link copied to clipboard");
+    } catch {
+        showToast("Failed to create link");
+    } finally {
+        shareBtn.disabled = false;
+    }
+});
 
 // Init
 loadServices();

@@ -21,6 +21,7 @@ module.exports = defineConfig({
         "marker-colors.spec.js",
         "polled-services.spec.js",
         "date-filter-config.spec.js",
+        "short-urls.spec.js",
       ],
     },
     {

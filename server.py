@@ -7,7 +7,7 @@ import os
 import time
 from datetime import datetime, timezone
 from functools import partial
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, redirect, send_from_directory
 import requests as http_requests
 from alltheapis_service import (
     find_nearby, fetch_records, get_service_meta,
@@ -16,6 +16,7 @@ from alltheapis_service import (
     get_catalog_entry,
 )
 from dispatch_cache import ServicePoller, get_cached_events, get_cache_stats
+from short_urls import create_short_url, resolve_short_url
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,6 +55,28 @@ def index():
 @app.route("/favicon.ico")
 def favicon():
     return send_from_directory("static", "favicon.svg", mimetype="image/svg+xml")
+
+
+@app.route("/s", methods=["POST"])
+def shorten():
+    """Create a short URL from a query string."""
+    data = request.get_json(silent=True)
+    if not data or not data.get("query_string", "").strip():
+        return jsonify({"error": "Missing query_string"}), 400
+    qs = data["query_string"].strip()
+    if len(qs) > 2000:
+        return jsonify({"error": "Query string too long"}), 400
+    sid = create_short_url(qs)
+    return jsonify({"id": sid, "url": f"/s/{sid}"})
+
+
+@app.route("/s/<sid>")
+def resolve(sid):
+    """Redirect a short URL to the full search."""
+    qs = resolve_short_url(sid)
+    if qs is None:
+        return jsonify({"error": "Short URL not found"}), 404
+    return redirect(f"/?{qs}")
 
 
 @app.route("/health")
