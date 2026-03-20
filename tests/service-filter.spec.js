@@ -62,7 +62,7 @@ test.describe("Dataset search filter", () => {
 
     // Click the first matching option
     const firstOption = page.locator("#service-dropdown .service-option").first();
-    const optionText = await firstOption.textContent();
+    const optionLabel = await firstOption.locator(".service-option-label").textContent();
     const optionValue = await firstOption.getAttribute("data-value");
     await firstOption.click();
 
@@ -74,9 +74,9 @@ test.describe("Dataset search filter", () => {
 
     // Should show selected label
     const label = await page.evaluate(() =>
-      document.getElementById("service-selected").textContent
+      document.getElementById("service-selected").querySelector("span").textContent
     );
-    expect(label).toContain(optionText);
+    expect(label).toBe(optionLabel);
 
     // Dropdown should close
     await expect(page.locator("#service-dropdown")).not.toHaveClass(/open/);
@@ -84,7 +84,7 @@ test.describe("Dataset search filter", () => {
     // Search input should be cleared
     await expect(page.locator("#service-search")).toHaveValue("");
 
-    console.log(`Selected: ${optionText} (${optionValue})`);
+    console.log(`Selected: ${optionLabel} (${optionValue})`);
   });
 
   test("clearing selection via x button works", async ({ page }) => {

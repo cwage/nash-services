@@ -257,6 +257,19 @@ function selectService(serviceName) {
             selectService("");
         });
         serviceSelectedEl.appendChild(clearBtn);
+        if (svc && svc.about) {
+            const infoBtn = document.createElement("button");
+            infoBtn.type = "button";
+            infoBtn.className = "dataset-info-btn";
+            infoBtn.textContent = "?";
+            infoBtn.title = "About this dataset";
+            infoBtn.setAttribute("aria-label", "About this dataset");
+            infoBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                openDatasetInfoModal(svc);
+            });
+            serviceSelectedEl.appendChild(infoBtn);
+        }
     } else {
         serviceSelectedEl.textContent = "";
     }
@@ -284,8 +297,31 @@ function buildServicePanel(services) {
         for (const svc of svcs) {
             const opt = document.createElement("div");
             opt.className = "service-option";
-            opt.textContent = svc.description || svc.name;
             opt.dataset.value = svc.name;
+
+            const label = document.createElement("span");
+            label.className = "service-option-label";
+            label.textContent = svc.description || svc.name;
+            opt.appendChild(label);
+
+            if (svc.about) {
+                const infoBtn = document.createElement("button");
+                infoBtn.type = "button";
+                infoBtn.className = "dropdown-info-btn";
+                infoBtn.textContent = "?";
+                infoBtn.title = "About this dataset";
+                infoBtn.setAttribute("aria-label", "About this dataset");
+                infoBtn.addEventListener("mousedown", (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+                infoBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    openDatasetInfoModal(svc);
+                });
+                opt.appendChild(infoBtn);
+            }
+
             opt.addEventListener("mousedown", (e) => {
                 e.preventDefault(); // prevent blur before click registers
                 selectService(svc.name);
@@ -337,7 +373,12 @@ serviceSearch.addEventListener("focus", () => {
 
 serviceSearch.addEventListener("blur", () => {
     // Small delay so mousedown on option fires first
-    _blurTimeout = setTimeout(() => { closeServiceDropdown(); _blurTimeout = null; }, 150);
+    _blurTimeout = setTimeout(() => {
+        // Keep dropdown open while dataset info modal is showing
+        if (datasetInfoOverlay.classList.contains("open")) return;
+        closeServiceDropdown();
+        _blurTimeout = null;
+    }, 150);
 });
 
 serviceSearch.addEventListener("keydown", (e) => {
@@ -1084,6 +1125,77 @@ aboutOverlay.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && aboutOverlay.classList.contains("open")) {
         closeAboutModal();
+    }
+});
+
+// --- Dataset info modal ---
+const datasetInfoOverlay = document.getElementById("dataset-info-overlay");
+const datasetInfoTitle = document.getElementById("dataset-info-title");
+const datasetInfoBody = document.getElementById("dataset-info-body");
+const datasetInfoCloseBtn = document.getElementById("dataset-info-close");
+let datasetInfoPreviousFocus = null;
+
+function openDatasetInfoModal(svc) {
+    datasetInfoPreviousFocus = document.activeElement;
+    datasetInfoTitle.textContent = svc.description || svc.name;
+
+    datasetInfoBody.innerHTML = "";
+
+    if (svc.about) {
+        const p = document.createElement("p");
+        p.className = "info-about";
+        p.textContent = svc.about;
+        datasetInfoBody.appendChild(p);
+    }
+
+    // Derive tips from metadata
+    const tips = [];
+    if (svc.mode === "geocode") {
+        tips.push("Locations are geocoded from street addresses, so map positions may be approximate.");
+    }
+    if (svc.mode === "centroid") {
+        tips.push("This dataset uses line or polygon geometry. Map pins show the center point of each feature.");
+    }
+    if (svc.date_field) {
+        tips.push("Supports date range filtering \u2014 use the date pickers to narrow results to a specific time period.");
+    }
+    if (svc.poll) {
+        tips.push("Live data \u2014 updated automatically every few minutes.");
+    }
+
+    if (tips.length) {
+        const ul = document.createElement("ul");
+        ul.className = "info-tips";
+        for (const tip of tips) {
+            const li = document.createElement("li");
+            li.textContent = tip;
+            ul.appendChild(li);
+        }
+        datasetInfoBody.appendChild(ul);
+    }
+    datasetInfoOverlay.classList.add("open");
+    setTimeout(() => datasetInfoCloseBtn.focus(), 0);
+}
+
+function closeDatasetInfoModal() {
+    datasetInfoOverlay.classList.remove("open");
+    if (datasetInfoPreviousFocus) {
+        datasetInfoPreviousFocus.focus();
+        // Re-open dropdown if we came from the service search
+        if (datasetInfoPreviousFocus === serviceSearch) openServiceDropdown();
+    }
+    datasetInfoPreviousFocus = null;
+}
+
+datasetInfoCloseBtn.addEventListener("click", closeDatasetInfoModal);
+
+datasetInfoOverlay.addEventListener("click", (e) => {
+    if (e.target === datasetInfoOverlay) closeDatasetInfoModal();
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && datasetInfoOverlay.classList.contains("open")) {
+        closeDatasetInfoModal();
     }
 });
 

@@ -11,6 +11,10 @@
 #   Only set this for services where the date represents a meaningful event time
 #   (not admin/audit metadata like created_date or last_edited_date).
 #
+# about:
+#   Human-readable explanation of the dataset shown in the UI info modal.
+#   Keep to 1-2 sentences describing what the data is and who produces it.
+#
 # Record counts audited 2026-03-16. Services with geometry use server-side
 # spatial filtering via ArcGIS; geocode-mode services use client-side filtering.
 #
@@ -26,6 +30,9 @@ services:
     mode: geocode
     address_field: Location
     description: MNPD active dispatch calls
+    about: >-
+      Current police dispatch events — incidents that officers are actively
+      responding to right now. Updated in near-real-time.
     poll: true
     # ~12 records (real-time, fluctuates)
 
@@ -33,6 +40,9 @@ services:
     category: Active / Real-Time
     mode: geocode
     description: NFD active incidents
+    about: >-
+      Current fire department responses — structure fires, medical calls,
+      hazmat, and other emergencies. Similar to MNPD dispatch but for fire/EMS.
     poll: true
     # ~40 records (real-time, fluctuates)
 
@@ -41,6 +51,9 @@ services:
     mode: point
     address_field: Address
     description: Water service outages
+    about: >-
+      Active Metro Water outage locations — main breaks, service interruptions,
+      and boil advisories. Often empty when there are no active outages.
     poll: true
     # ~0 records (real-time, fluctuates)
 
@@ -49,6 +62,10 @@ services:
     mode: centroid
     address_field: street
     description: Active road closures
+    about: >-
+      Current road closures managed by Nashville's NERVE center (Nashville
+      Emergency Response & Vital Events). Includes construction, events,
+      and emergency closures.
     poll: true
     # ~20 records (real-time, fluctuates)
 
@@ -56,6 +73,9 @@ services:
     category: Active / Real-Time
     mode: point
     description: Transportation hazard reports
+    about: >-
+      Citizen-reported road hazards — potholes, debris, signal outages,
+      downed signs, and other transportation safety issues.
     poll: true
     # ~181 records
 
@@ -64,6 +84,10 @@ services:
     mode: point
     address_field: Address
     description: Warming stations
+    about: >-
+      Seasonal locations where people can shelter from cold weather —
+      community centers, churches, and other facilities. Typically active
+      November through March.
     # ~52 records
 
   # === Police / Public Safety ===
@@ -74,6 +98,10 @@ services:
     address_field: Incident_Location
     date_field: Incident_Occurred
     description: MNPD crime incidents
+    about: >-
+      Reported crimes with type, location, and date. The primary historical
+      crime dataset for Nashville. Use date filtering to focus on a specific
+      time period.
     # ~871k records
 
   - name: MNPD_Calls_for_Service_2025_view
@@ -82,6 +110,10 @@ services:
     address_field: Street_name
     date_field: Call_Received
     description: Police calls for service (2025)
+    about: >-
+      Every call dispatched to MNPD — not just crimes but welfare checks,
+      traffic stops, alarms, noise complaints, and more. Much higher volume
+      than the incidents dataset. Year-specific datasets go back to 2018.
     # ~377k records
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2023
@@ -90,6 +122,9 @@ services:
     address_field: Street_name
     date_field: Call_Received
     description: Police calls for service (2023)
+    about: >-
+      Every call dispatched to MNPD in 2023 — welfare checks, traffic stops,
+      alarms, noise complaints, and more.
     # ~446k records
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2022
@@ -98,6 +133,9 @@ services:
     address_field: Street_name
     date_field: Call_Received
     description: Police calls for service (2022)
+    about: >-
+      Every call dispatched to MNPD in 2022 — welfare checks, traffic stops,
+      alarms, noise complaints, and more.
     # ~381k records
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2021
@@ -106,6 +144,9 @@ services:
     address_field: Street_name
     date_field: Call_Received
     description: Police calls for service (2021)
+    about: >-
+      Every call dispatched to MNPD in 2021 — welfare checks, traffic stops,
+      alarms, noise complaints, and more.
     # ~530k records
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2020
@@ -114,6 +155,9 @@ services:
     address_field: Street_name
     date_field: Call_Received
     description: Police calls for service (2020)
+    about: >-
+      Every call dispatched to MNPD in 2020 — welfare checks, traffic stops,
+      alarms, noise complaints, and more.
     # ~692k records
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2019
@@ -122,6 +166,9 @@ services:
     address_field: Street_name
     date_field: Call_Received
     description: Police calls for service (2019)
+    about: >-
+      Every call dispatched to MNPD in 2019 — welfare checks, traffic stops,
+      alarms, noise complaints, and more.
     # ~828k records
 
   - name: Metro_Nashville_Police_Department_Calls_for_Service_2018
@@ -130,6 +177,9 @@ services:
     address_field: Street_name
     date_field: Call_Received
     description: Police calls for service (2018)
+    about: >-
+      Every call dispatched to MNPD in 2018 — welfare checks, traffic stops,
+      alarms, noise complaints, and more.
     # ~1M records
 
   - name: License_Plate_Reader_Locations
@@ -137,6 +187,9 @@ services:
     mode: point
     address_field: LPR_Location
     description: LPR camera locations
+    about: >-
+      Fixed automated license plate reader cameras operated by MNPD.
+      A small, static dataset of camera positions.
     # ~24 records
 
   - name: Sexually_Oriented_Permitted_Businesses_view
@@ -144,6 +197,9 @@ services:
     mode: point
     address_field: Location
     description: Sexually oriented business permits
+    about: >-
+      Businesses permitted under Nashville's sexually oriented business
+      ordinance — adult bookstores, clubs, and similar establishments.
     # ~6 records
 
   # === 311 / hubNashville ===
@@ -154,6 +210,10 @@ services:
     address_field: Address
     date_field: Date_Time_Opened
     description: 311 service requests (current year)
+    about: >-
+      Citizen service requests filed through hubNashville (Nashville's 311
+      system) — trash pickup issues, abandoned vehicles, graffiti, streetlight
+      outages, and more. Rolling dataset of the current calendar year.
     # ~57k records
 
   - name: hubNashville_311_Service_Requests_2025_view
@@ -162,6 +222,9 @@ services:
     address_field: Address
     date_field: Date_Time_Opened
     description: 311 service requests (2025)
+    about: >-
+      Citizen service requests filed through hubNashville in 2025 — trash
+      issues, abandoned vehicles, graffiti, streetlight outages, and more.
     # ~246k records
 
   - name: hubNashville_311_Service_Requests_2024_view
@@ -170,6 +233,9 @@ services:
     address_field: Address
     date_field: Date_Time_Opened
     description: 311 service requests (2024)
+    about: >-
+      Citizen service requests filed through hubNashville in 2024 — trash
+      issues, abandoned vehicles, graffiti, streetlight outages, and more.
     # ~279k records
 
   - name: hubNashville_311_Service_Requests_2023_view
@@ -178,6 +244,9 @@ services:
     address_field: Address
     date_field: Date_Time_Opened
     description: 311 service requests (2023)
+    about: >-
+      Citizen service requests filed through hubNashville in 2023 — trash
+      issues, abandoned vehicles, graffiti, streetlight outages, and more.
     # ~274k records
 
   - name: hubNashville_311_Service_Requests_2022_view
@@ -186,6 +255,9 @@ services:
     address_field: Address
     date_field: Date_Time_Opened
     description: 311 service requests (2022)
+    about: >-
+      Citizen service requests filed through hubNashville in 2022 — trash
+      issues, abandoned vehicles, graffiti, streetlight outages, and more.
     # ~262k records
 
   - name: hubNashville_311_Service_Requests_2021_view
@@ -194,6 +266,9 @@ services:
     address_field: Address
     date_field: Date_Time_Opened
     description: 311 service requests (2021)
+    about: >-
+      Citizen service requests filed through hubNashville in 2021 — trash
+      issues, abandoned vehicles, graffiti, streetlight outages, and more.
     # ~318k records
 
   # === Traffic / Transportation ===
@@ -203,6 +278,9 @@ services:
     mode: point
     date_field: dateofcras
     description: Traffic crash data
+    about: >-
+      Reported vehicle collisions with location, date, severity, and
+      contributing factors.
     # ~49k records
 
   - name: Traffic_Calming_Projects_view
@@ -210,6 +288,9 @@ services:
     mode: centroid
     address_field: OnStreet
     description: Traffic calming projects
+    about: >-
+      Speed humps, chicanes, roundabouts, and other traffic calming measures —
+      both installed and planned.
     # ~1.2k records
 
   - name: Road_Damage_Reporting_Winter_2026_Features_view
@@ -218,6 +299,9 @@ services:
     address_field: street_name
     date_field: _date
     description: Road damage reports (Winter 2026)
+    about: >-
+      Citizen-reported road damage from the winter freeze/thaw cycle —
+      primarily potholes. A seasonal dataset.
     # ~11k records
 
   - name: BCycle_Locations_view
@@ -225,6 +309,8 @@ services:
     mode: point
     address_field: Location
     description: BCycle bike share stations
+    about: >-
+      Docking stations for Nashville's BCycle bike-share program.
     # ~33 records
 
   - name: BikeRacks_view
@@ -232,6 +318,8 @@ services:
     mode: point
     address_field: Location
     description: Bike rack locations
+    about: >-
+      Public bike parking racks, mostly downtown and in parks.
     # ~389 records
 
   - name: Bikeways_view
@@ -239,12 +327,16 @@ services:
     mode: centroid
     address_field: OnStreetName
     description: Bikeways / bike lanes
+    about: >-
+      Designated bike lanes, shared lanes, and bike routes across Nashville.
     # ~519 records
 
   - name: Crosswalks_2_view
     category: Traffic / Transportation
     mode: point
     description: Crosswalk locations
+    about: >-
+      Marked pedestrian crosswalks with type (painted, raised, signaled).
     # ~1.8k records
 
   - name: Curb_Ramps_view
@@ -252,6 +344,8 @@ services:
     mode: point
     address_field: OnStreet
     description: Curb ramp locations
+    about: >-
+      ADA curb ramps at intersections, including compliance status.
     # ~18k records
 
   - name: Roadway_Paving_Management_Projects
@@ -260,6 +354,8 @@ services:
     address_field: ProjectLocation
     date_field: EstStartDate
     description: Roadway paving projects
+    about: >-
+      Planned and completed road resurfacing and reconstruction projects.
     # ~3.2k records
 
   # === Permits / Development ===
@@ -270,6 +366,9 @@ services:
     address_field: Address
     date_field: Date_Issued
     description: Building permits issued
+    about: >-
+      Approved building permits — new construction, additions, and demolitions.
+      Includes contractor, valuation, and permit type.
     # ~30k records
 
   - name: Building_Permit_Applications_Feature_Layer_view
@@ -278,6 +377,8 @@ services:
     address_field: Address
     date_field: Date_Entered
     description: Building permit applications
+    about: >-
+      Submitted (not necessarily approved) building permit applications.
     # ~5.5k records
 
   - name: Trade_Permits_View
@@ -286,6 +387,9 @@ services:
     address_field: Address
     date_field: Date_Issued
     description: Trade permits (electrical, mechanical, plumbing)
+    about: >-
+      Electrical, mechanical, and plumbing permits — the sub-permits that
+      accompany building work.
     # ~116k records
 
   - name: Active_Right-of-Way_Permits
@@ -294,6 +398,9 @@ services:
     address_field: Onstreet
     date_field: Initiated__Date
     description: Active right-of-way permits
+    about: >-
+      Permits for work in the public right-of-way — utility cuts, sidewalk
+      closures, dumpster placement, and similar.
     # ~20k records
 
   - name: Board_of_Zoning_Appeals_Cases_view
@@ -301,6 +408,9 @@ services:
     mode: point
     date_field: DATE_ACCEPTED
     description: Board of zoning appeals cases
+    about: >-
+      Variance and special exception requests heard by the Board of
+      Zoning Appeals.
     # ~72 records
 
   - name: Development_Tracker_Cases_view
@@ -309,6 +419,9 @@ services:
     address_field: LOCATION_DESC
     date_field: DATE_ACCEPTED
     description: Development tracker cases
+    about: >-
+      Active development cases being tracked through the planning process —
+      rezonings, specific plans, and subdivisions.
     # ~573 records
 
   - name: PlanningDepartmentDevelopmentApplications_view
@@ -317,6 +430,9 @@ services:
     address_field: Location
     date_field: Date_Submitted
     description: Planning department applications
+    about: >-
+      Applications submitted to the Metro Planning Department for zoning
+      changes, subdivisions, and development review.
     # ~546 records
 
   - name: Residential_Short_Term_Rental_Permits_view
@@ -325,6 +441,9 @@ services:
     address_field: Address
     date_field: Date_Issued
     description: Short-term rental (Airbnb) permits
+    about: >-
+      Properties permitted for short-term rental use. Useful for seeing
+      STR density in a neighborhood.
     # ~17k records
 
   - name: Beer_Permit_Locations_Feature_Layer_view
@@ -333,6 +452,9 @@ services:
     address_field: Address
     date_field: Date_Issued
     description: Beer permit locations
+    about: >-
+      Businesses with beer sales permits — bars, restaurants, and
+      convenience stores.
     # ~2.1k records
 
   - name: Registered_Professional_Contractors_view_2
@@ -340,6 +462,8 @@ services:
     mode: point
     address_field: Address
     description: Registered professional contractors
+    about: >-
+      Licensed contractors registered with Metro Codes.
     # ~7.6k records
 
   # === Property / Housing ===
@@ -350,6 +474,9 @@ services:
     address_field: Property_Address
     date_field: Date_Received
     description: Property standards violations
+    about: >-
+      Code enforcement cases — overgrown lots, junk vehicles, unsafe
+      structures, and other property maintenance violations.
     # ~41k records
 
   - name: Housing_Opportunities_WFL1
@@ -357,6 +484,9 @@ services:
     mode: point
     address_field: Address
     description: Housing opportunities
+    about: >-
+      Affordable and subsidized housing listings from MDHA and partner
+      properties.
     # ~268 records
 
   - name: Parcels_view
@@ -364,6 +494,9 @@ services:
     mode: point
     address_field: PropStreet
     description: Property parcels
+    about: >-
+      Every tax parcel in Davidson County with owner, address, and basic
+      property info. Very large dataset — use a small search radius.
     cluster: false
     # ~286k records
 
@@ -371,6 +504,9 @@ services:
     category: Property / Housing
     mode: point
     description: TIF projects
+    about: >-
+      Tax increment financing districts — areas where increased tax revenue
+      funds infrastructure improvements.
     # ~69 records
 
   # === Historic ===
@@ -380,6 +516,9 @@ services:
     mode: point
     address_field: Address
     description: Historic districts and properties
+    about: >-
+      National Register and locally designated historic districts and
+      individual landmarks.
     # ~156 records
 
   - name: Historic_Commission_Permits
@@ -388,6 +527,9 @@ services:
     address_field: LOCATION
     date_field: DATE_ACCEPTED
     description: Historic commission permits
+    about: >-
+      Permits reviewed by the Metro Historical Commission for work in
+      historic overlay districts.
     # ~8.8k records
 
   - name: Metropolitan_Historic_Zoning_Commission_Permits_view
@@ -396,6 +538,9 @@ services:
     address_field: LOCATION
     date_field: DATE_ACCEPTED
     description: Historic zoning commission permits
+    about: >-
+      Permits for exterior changes in historic zoning overlay districts.
+      May overlap with Historic Commission Permits.
     # ~8.8k records
 
   - name: Historical_Markers_view
@@ -403,6 +548,8 @@ services:
     mode: point
     address_field: Location
     description: Historical markers
+    about: >-
+      Physical historical markers and plaques across Davidson County.
     # ~263 records
 
   # === Parks / Public Spaces ===
@@ -412,6 +559,8 @@ services:
     mode: point
     address_field: Address
     description: Parks
+    about: >-
+      Metro Parks locations with name, address, and amenities.
     # ~150 records
 
   - name: Metro_Art_in_Public_Places_view
@@ -419,6 +568,8 @@ services:
     mode: point
     address_field: Address
     description: Public art installations
+    about: >-
+      Artworks commissioned through Metro Arts' Art in Public Places program.
     # ~164 records
 
   - name: Metro_Arts_Public_Artwork_view
@@ -426,6 +577,9 @@ services:
     mode: point
     address_field: Location
     description: Public artwork
+    about: >-
+      Public artwork including murals, sculptures, and installations
+      across Nashville.
     # ~178 records
 
   # === Public Services ===
@@ -435,6 +589,8 @@ services:
     mode: point
     address_field: Address
     description: Fire station locations
+    about: >-
+      All Nashville Fire Department station locations.
     # ~40 records
 
   - name: Library_Facilities
@@ -442,12 +598,16 @@ services:
     mode: point
     address_field: Address
     description: Public libraries
+    about: >-
+      Nashville Public Library branch locations.
     # ~21 records
 
   - name: Metro_Nashville_Public_Schools_view
     category: Public Services
     mode: point
     description: Public schools
+    about: >-
+      MNPS school locations — elementary, middle, high, and specialty schools.
     # ~161 records
 
   - name: Public_Health_Clinics_view
@@ -455,6 +615,8 @@ services:
     mode: point
     address_field: Address
     description: Public health clinics
+    about: >-
+      Metro Public Health Department clinic locations.
     # ~4 records
 
   - name: Metro_Public_Health_Community_Partners_view
@@ -462,6 +624,9 @@ services:
     mode: point
     address_field: Address
     description: Public health community partners
+    about: >-
+      Organizations partnering with Metro Public Health — food banks,
+      counseling centers, and other community resources.
     # ~298 records
 
   - name: Metro_Social_Services_Locations_and_Services_Offered_View
@@ -469,6 +634,8 @@ services:
     mode: point
     address_field: Address
     description: Social services locations
+    about: >-
+      Metro social services offices and the programs they offer.
     # ~12 records
 
   - name: Pharmaceutical_Disposal_Locations_view
@@ -476,6 +643,9 @@ services:
     mode: point
     address_field: Address
     description: Pharmaceutical disposal drop-off locations
+    about: >-
+      Safe medication disposal sites — pharmacies and police precincts
+      with drop boxes.
     # ~8 records
 
   - name: Convenience_Centers_and_Recycling_Dropoff_Locations_view
@@ -483,6 +653,9 @@ services:
     mode: point
     address_field: Address
     description: Recycling drop-off and convenience centers
+    about: >-
+      Locations where residents can drop off recyclables, yard waste,
+      and bulk items.
     # ~13 records
 
   - name: Metro_Public_WiFi_Locations_view
@@ -490,6 +663,9 @@ services:
     mode: point
     address_field: Address
     description: Public WiFi locations
+    about: >-
+      Free public WiFi hotspots operated by Metro — libraries, community
+      centers, and parks.
     # ~107 records
 
   - name: Public_Water_Fountains_and_Hydration_Systems_view
@@ -497,6 +673,8 @@ services:
     mode: point
     address_field: location
     description: Public water fountains
+    about: >-
+      Drinking fountains and bottle-fill stations in public spaces.
     # ~172 records
 
   - name: Davidson_County_Voting_Locations_View
@@ -504,6 +682,8 @@ services:
     mode: point
     address_field: Address
     description: Voting locations
+    about: >-
+      Polling places for Davidson County elections.
     # ~178 records
 
   - name: Police_Precincts_view
@@ -511,6 +691,8 @@ services:
     mode: point
     address_field: Address
     description: Police precinct locations
+    about: >-
+      MNPD precinct headquarters and substations.
     # ~8 records
 
   - name: FoodStores_Total_view
@@ -518,6 +700,9 @@ services:
     mode: point
     address_field: Address_Full
     description: Food stores
+    about: >-
+      Grocery stores, markets, and food retailers — used in food access
+      and food desert analysis.
     # ~214 records
 
   - name: Downtown_Special_Events_Recurring
@@ -526,6 +711,9 @@ services:
     address_field: user_event_location_name
     date_field: event_date_1
     description: Downtown special events
+    about: >-
+      Permitted events in downtown Nashville — concerts, festivals, parades,
+      and private events.
     # ~1.7k records
 
   # === Infrastructure ===
@@ -535,6 +723,9 @@ services:
     mode: point
     date_field: EstimatedStartDate
     description: Capital projects
+    about: >-
+      Metro-funded capital improvement projects — parks, roads, buildings,
+      and utilities.
     # ~591 records
 
   - name: Capital_Project_Management_System_view
@@ -543,6 +734,9 @@ services:
     address_field: ProjectLocation
     date_field: ActStartDate
     description: Capital project management
+    about: >-
+      Detailed capital project tracking with timelines, budgets, and
+      current status.
     # ~401 records
 
   - name: NDOTCapitalProjects_view
@@ -550,6 +744,9 @@ services:
     mode: point
     address_field: ProjectLocation
     description: NDOT capital projects
+    about: >-
+      Nashville Department of Transportation capital projects — road
+      improvements, signal upgrades, and intersection redesigns.
     # ~568 records
 
   - name: NERVE_Facilities_Public_View
@@ -557,18 +754,27 @@ services:
     mode: point
     address_field: address
     description: NERVE facilities
+    about: >-
+      Nashville Emergency Response & Vital Events facility locations.
+      Often shows zero records.
     # ~0 records
 
   - name: Sidewalk_Inventory_for_ADA_Self_Assessment_view
     category: Infrastructure
     mode: point
     description: Sidewalk ADA assessment inventory
+    about: >-
+      Every sidewalk segment in the county with ADA compliance assessment
+      data. Very large dataset — use a small search radius.
     # ~188k records
 
   - name: Pedestrian_Signal_Inventory_and_ADA_Self_Assessments_view
     category: Infrastructure
     mode: point
     description: Pedestrian signal ADA assessments
+    about: >-
+      Pedestrian crossing signals with ADA compliance data — button height,
+      audible signals, and timing.
     # ~3.2k records
 
   # === Environment ===
@@ -578,6 +784,10 @@ services:
     mode: point
     address_field: OnStreet
     description: Tree tracker data
+    about: >-
+      Trees planted and tracked through Nashville's Root Nashville urban
+      forestry program. Despite "Test Data" in the name, this is the
+      primary public dataset.
     # ~39k records
 
   - name: Hail_Storms
@@ -585,6 +795,8 @@ services:
     mode: point
     date_field: Date_Calc
     description: Hail storm data
+    about: >-
+      Historical hail event locations with date and severity.
     # ~243 records
 
   - name: Metro_Energy_Use_Intensity_Benchmarking_view
@@ -592,10 +804,16 @@ services:
     mode: geocode
     address_field: Building_Address
     description: Building energy use benchmarking
+    about: >-
+      Energy usage data for large commercial buildings as required by
+      Metro's benchmarking ordinance.
     # ~675 records
 
   - name: Traverse_Points_Temperature
     category: Environment
     mode: point
     description: Urban heat traverse temperature points
+    about: >-
+      Temperature readings from urban heat island studies — vehicles with
+      sensors driving set routes to map heat variation across the city.
     # ~25k records
