@@ -1,66 +1,34 @@
 # nash-services
 
-Generic proximity search tool for Nashville Open Data (ArcGIS). Pass any service name and an address, get back what's nearby.
+A web app for browsing and searching Nashville Open Data by location. Pick a dataset, enter an address, and see what's nearby on a map.
 
-Works with all 300+ Nashville ArcGIS FeatureServer datasets — police dispatch, 311 requests, road closures, fire incidents, short-term rental permits, and more.
+Live at [nash-services.quietlife.net](https://nash-services.quietlife.net).
 
-## Docker Image
+Built on a curated catalog of Nashville ArcGIS FeatureServer datasets — police dispatch, 311 requests, road closures, fire incidents, short-term rental permits, and more.
 
-Pre-built images are published to `ghcr.io/cwage/nash-services` on an as-needed basis. You can run the latest release with:
+## Quick Start
+
+```bash
+docker compose up -d
+```
+
+Then open [http://localhost:5010](http://localhost:5010).
+
+Pre-built images are also available:
 
 ```bash
 docker run -p 5000:5000 ghcr.io/cwage/nash-services:latest
 ```
 
-Or pin to a specific version (e.g. `ghcr.io/cwage/nash-services:0.10.2`). See [Packages](https://github.com/cwage/nash-services/pkgs/container/nash-services) for available tags.
+See [Packages](https://github.com/cwage/nash-services/pkgs/container/nash-services) for available tags.
 
-## Requirements
+## How It Works
 
-- Docker & Docker Compose
-- `jq` and `curl` (for the CLI)
-
-## Quick Start
-
-```bash
-# Start the API (builds from source)
-docker compose up -d
-
-# Search for a service
-./alltheapis.sh --search "police dispatch"
-
-# See service fields/schema
-./alltheapis.sh --info Metro_Nashville_Police_Department_Active_Dispatch_Table_view
-
-# Find active police dispatches near an address
-./alltheapis.sh -s Metro_Nashville_Police_Department_Active_Dispatch_Table_view -a "1000 Broadway, Nashville"
-
-# 311 requests within 1 mile
-./alltheapis.sh -s hubNashville_311_Service_Requests_Current_Year_view -a "1000 Broadway" -r 1
-
-# List all available services
-./alltheapis.sh --list
-
-# List records without proximity filter
-./alltheapis.sh -s Metro_Nashville_Police_Department_Active_Dispatch_Table_view -l
-```
-
-## CLI Usage
-
-```
-Usage:
-  alltheapis.sh -s <service> -a <address> [-r <radius>]   Proximity search
-  alltheapis.sh -s <service> -l [-m <max>]                List records
-  alltheapis.sh --search <query>                          Search services by keyword
-  alltheapis.sh --info <service>                          Show service schema
-  alltheapis.sh --list                                    List all services
-
-Options:
-  -s, --service        ArcGIS service name
-  -a, --address        Address to search near
-  -r, --radius         Radius in miles (default: 2.0)
-  -l, --list-records   List records without proximity filter
-  -m, --max            Max records to fetch (default: 1000)
-```
+1. Select a dataset from the curated service catalog (`services.yml`)
+2. Enter an address and search radius
+3. The app geocodes your address via the US Census Geocoder
+4. Queries the ArcGIS FeatureServer for nearby records (using server-side spatial filtering for point/centroid datasets, or client-side filtering for geocode-mode datasets)
+5. Results are plotted on a Leaflet map and listed in the sidebar, sorted by distance
 
 ## API Endpoints
 
@@ -72,13 +40,16 @@ Options:
 | `GET /nearby/<service_name>?address=<addr>&radius=<miles>` | Proximity search |
 | `GET /records/<service_name>?max=<n>` | List raw records |
 
-## How It Works
+## CLI
 
-1. Queries the Nashville ArcGIS FeatureServer for the named service
-2. Auto-detects whether records have geometry (lat/lng) or only addresses
-3. Geocodes addresses (yours and the records') via the US Census Geocoder
-4. Calculates haversine distance and filters by radius
-5. Returns results sorted by proximity
+A shell CLI (`alltheapis.sh`) also exists for quick lookups:
+
+```bash
+./alltheapis.sh --search "police dispatch"
+./alltheapis.sh -s Metro_Nashville_Police_Department_Active_Dispatch_Table_view -a "1000 Broadway, Nashville"
+```
+
+Run `./alltheapis.sh --help` for full usage.
 
 ## Data Source
 
