@@ -171,9 +171,9 @@ def report_bug():
     debug_context = data.get("debug_context", "")[:5000]
 
     # Rate limit by real client IP (X-Forwarded-For behind reverse proxy)
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+    ip = request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown"
     if "," in ip:
-        ip = ip.split(",")[0].strip()
+        ip = ip.split(",", 1)[0].strip()
     now = time.time()
     last = _bug_report_timestamps.get(ip, 0)
     if now - last < BUG_REPORT_COOLDOWN:
