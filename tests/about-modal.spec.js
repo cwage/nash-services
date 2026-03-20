@@ -69,24 +69,26 @@ test.describe("About modal", () => {
 });
 
 test.describe("About modal auto-open on first visit", () => {
-  test("modal opens automatically when no localStorage flag is set", async ({ browser }) => {
-    // Fresh context with no storageState — simulates a new visitor
-    const context = await browser.newContext({ storageState: undefined });
-    const page = await context.newPage();
+  // Clear storageState so these tests simulate a new visitor
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => {
       const sel = document.getElementById("service-select");
       return sel && sel.options.length > 1;
     }, { timeout: 15000 });
+  });
 
+  test("modal opens automatically when no localStorage flag is set", async ({ page }) => {
     const overlay = page.locator("#about-modal-overlay");
     await expect(overlay).toHaveClass(/open/);
-    await context.close();
   });
 
   test("modal does not auto-open on subsequent visits", async ({ page }) => {
-    // storageState from config has nashServicesVisited=1
-    await page.goto("/");
+    // Manually set the flag as if user had visited before
+    await page.evaluate(() => localStorage.setItem("nashServicesVisited", "1"));
+    await page.reload();
     await page.waitForFunction(() => {
       const sel = document.getElementById("service-select");
       return sel && sel.options.length > 1;
@@ -96,39 +98,18 @@ test.describe("About modal auto-open on first visit", () => {
     await expect(overlay).not.toHaveClass(/open/);
   });
 
-  test("closing the modal sets the localStorage flag", async ({ browser }) => {
-    const context = await browser.newContext({ storageState: undefined });
-    const page = await context.newPage();
-    await page.goto("/");
-    await page.waitForFunction(() => {
-      const sel = document.getElementById("service-select");
-      return sel && sel.options.length > 1;
-    }, { timeout: 15000 });
-
-    // Modal should be auto-opened
+  test("closing the modal sets the localStorage flag", async ({ page }) => {
     const overlay = page.locator("#about-modal-overlay");
     await expect(overlay).toHaveClass(/open/);
 
-    // Close it
     await page.click("#about-close");
     await expect(overlay).not.toHaveClass(/open/);
 
-    // Verify localStorage was set
     const flag = await page.evaluate(() => localStorage.getItem("nashServicesVisited"));
     expect(flag).toBe("1");
-
-    await context.close();
   });
 
-  test("modal stays closed after reload once dismissed", async ({ browser }) => {
-    const context = await browser.newContext({ storageState: undefined });
-    const page = await context.newPage();
-    await page.goto("/");
-    await page.waitForFunction(() => {
-      const sel = document.getElementById("service-select");
-      return sel && sel.options.length > 1;
-    }, { timeout: 15000 });
-
+  test("modal stays closed after reload once dismissed", async ({ page }) => {
     // Close the auto-opened modal
     await page.click("#about-close");
 
@@ -139,10 +120,7 @@ test.describe("About modal auto-open on first visit", () => {
       return sel && sel.options.length > 1;
     }, { timeout: 15000 });
 
-    // Modal should NOT auto-open this time
     const overlay = page.locator("#about-modal-overlay");
     await expect(overlay).not.toHaveClass(/open/);
-
-    await context.close();
   });
 });
