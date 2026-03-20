@@ -17,7 +17,7 @@ test.describe("Viewport filtering of sidebar results", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("found");
+      return s && s.includes("near");
     }, { timeout: 30000 });
 
     const totalItems = await page.evaluate(() =>
@@ -46,7 +46,7 @@ test.describe("Viewport filtering of sidebar results", () => {
     expect(visibleAfter).toBeLessThan(totalItems);
   });
 
-  test("status message shows 'in view' count when zoomed in", async ({ page }) => {
+  test("status message shows filtered count when zoomed in", async ({ page }) => {
     test.setTimeout(60000);
     await page.goto("/");
     await page.waitForFunction(() => {
@@ -61,7 +61,7 @@ test.describe("Viewport filtering of sidebar results", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("found");
+      return s && s.includes("near");
     }, { timeout: 30000 });
 
     await page.evaluate(() => {
@@ -69,14 +69,14 @@ test.describe("Viewport filtering of sidebar results", () => {
     });
 
     await page.waitForFunction(() => {
-      return document.getElementById("status").textContent.includes("in view");
+      return document.getElementById("status").textContent.includes("Showing");
     }, { timeout: 5000 });
 
     const status = await page.evaluate(() =>
       document.getElementById("status").textContent
     );
     console.log("Status after zoom:", status);
-    expect(status).toContain("in view");
+    expect(status).toContain("Showing");
   });
 
   test("zooming back out restores all results", async ({ page }) => {
@@ -94,7 +94,7 @@ test.describe("Viewport filtering of sidebar results", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("found");
+      return s && s.includes("near");
     }, { timeout: 30000 });
 
     const totalItems = await page.evaluate(() =>
@@ -106,7 +106,7 @@ test.describe("Viewport filtering of sidebar results", () => {
       map.setView([36.16, -86.78], 17);
     });
     await page.waitForFunction(() => {
-      return document.getElementById("status").textContent.includes("in view");
+      return document.getElementById("status").textContent.includes("Showing");
     }, { timeout: 5000 });
 
     // Zoom back out
@@ -114,9 +114,9 @@ test.describe("Viewport filtering of sidebar results", () => {
       map.setView([36.16, -86.78], 10);
     });
 
-    // Wait for status to no longer say "in view" (all records in viewport)
+    // Wait for status to no longer say "Showing" (all records in viewport)
     await page.waitForFunction(() => {
-      return !document.getElementById("status").textContent.includes("in view");
+      return !document.getElementById("status").textContent.includes("Showing");
     }, { timeout: 5000 });
 
     // Visible items should be >= what was shown when zoomed in
@@ -130,7 +130,7 @@ test.describe("Viewport filtering of sidebar results", () => {
       document.getElementById("status").textContent
     );
     console.log(`Status after zoom-out: ${status}, visible: ${visibleZoomedOut}`);
-    expect(status).not.toContain("in view");
+    expect(status).not.toContain("Showing");
     expect(visibleZoomedOut).toBeGreaterThan(0);
   });
 
@@ -150,7 +150,7 @@ test.describe("Viewport filtering of sidebar results", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("found");
+      return s && s.includes("near");
     }, { timeout: 30000 });
 
     const totalItems = await page.evaluate(() =>

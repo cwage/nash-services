@@ -633,11 +633,8 @@ async function doSearch() {
         // Build status message
         const count = data.count;
         const noun = count === 1 ? "result" : "results";
-        let statusMsg = `${count} ${noun} found`;
-        if (data.no_location > 0) {
-            statusMsg += ` · ${data.no_location} without location`;
-        }
-        setStatus(statusMsg);
+        const shortAddr = addressInput.value.split(",")[0].trim();
+        setStatus(`${count} ${noun} near ${shortAddr}`);
         resultsList.innerHTML = "";
 
         // Helpful hint when no results
@@ -718,6 +715,39 @@ async function doSearch() {
             resultsList.appendChild(item);
             currentResults.push({ marker, record, item });
         }
+
+        // Add unmapped records (no lat/lng) to sidebar
+        const unmapped = data.records.filter(r => !r._lat || !r._lng);
+        for (const record of unmapped) {
+            const item = document.createElement("div");
+            item.className = "result-item";
+
+            if (record._distance_miles !== undefined) {
+                const distSpan = document.createElement("span");
+                distSpan.className = "result-distance";
+                distSpan.textContent = `${record._distance_miles} mi`;
+                item.appendChild(distSpan);
+                item.appendChild(document.createTextNode(" "));
+            }
+
+            const summarySpan = document.createElement("span");
+            summarySpan.className = "result-summary";
+            summarySpan.textContent = summarizeRecord(record);
+            item.appendChild(summarySpan);
+
+            const badge = document.createElement("span");
+            badge.className = "no-pin-badge";
+            badge.textContent = "\uD83D\uDCCD"; // 📍 pin emoji
+            badge.title = "Address couldn't be mapped";
+            item.appendChild(badge);
+
+            item.addEventListener("click", () => {
+                openRecordModal(record, isPolled);
+            });
+
+            resultsList.appendChild(item);
+        }
+
         filterResultsByViewport();
     } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
@@ -776,7 +806,8 @@ function filterResultsByViewport() {
     const total = currentResults.length;
     const base = statusEl.dataset.baseStatus || statusEl.textContent;
     if (totalInView < total) {
-        statusEl.textContent = `Showing ${totalInView} of ${total} results in view`;
+        const shortAddr = addressInput.value.split(",")[0].trim();
+        statusEl.textContent = `Showing ${totalInView} of ${total} near ${shortAddr}`;
     } else {
         statusEl.textContent = base;
     }
@@ -938,6 +969,35 @@ aboutOverlay.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && aboutOverlay.classList.contains("open")) {
         closeAboutModal();
+    }
+});
+
+// --- Record detail modal ---
+const recordOverlay = document.getElementById("record-modal-overlay");
+const recordModalBody = document.getElementById("record-modal-body");
+const recordModalClose = document.getElementById("record-modal-close");
+
+function openRecordModal(record, isPolled) {
+    const addr = record._address || "";
+    const notice = addr
+        ? `<div class="no-location-notice">Address could not be mapped to coordinates. <a href="https://www.google.com/maps/search/${encodeURIComponent(addr + ", Nashville, TN")}" target="_blank" rel="noopener">Look up on Google Maps</a></div>`
+        : '<div class="no-location-notice">This record has no location data and cannot be shown on the map.</div>';
+    recordModalBody.innerHTML = notice + buildPopupContent(record, isPolled);
+    recordOverlay.classList.add("open");
+    setTimeout(() => recordModalClose.focus(), 0);
+}
+
+function closeRecordModal() {
+    recordOverlay.classList.remove("open");
+}
+
+recordModalClose.addEventListener("click", closeRecordModal);
+recordOverlay.addEventListener("click", (e) => {
+    if (e.target === recordOverlay) closeRecordModal();
+});
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && recordOverlay.classList.contains("open")) {
+        closeRecordModal();
     }
 });
 
