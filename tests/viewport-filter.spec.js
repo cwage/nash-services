@@ -17,7 +17,7 @@ test.describe("Viewport filtering of sidebar results", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("result(s) found");
+      return s && s.includes("results found");
     }, { timeout: 30000 });
 
     const totalItems = await page.evaluate(() =>
@@ -61,7 +61,7 @@ test.describe("Viewport filtering of sidebar results", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("result(s) found");
+      return s && s.includes("results found");
     }, { timeout: 30000 });
 
     await page.evaluate(() => {
@@ -94,7 +94,7 @@ test.describe("Viewport filtering of sidebar results", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("result(s) found");
+      return s && s.includes("results found");
     }, { timeout: 30000 });
 
     const totalItems = await page.evaluate(() =>
@@ -150,7 +150,7 @@ test.describe("Viewport filtering of sidebar results", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("result(s) found");
+      return s && s.includes("results found");
     }, { timeout: 30000 });
 
     const totalItems = await page.evaluate(() =>

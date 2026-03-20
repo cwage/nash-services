@@ -47,7 +47,7 @@ test.describe("Polled/cached services", () => {
       }));
 
       console.log(`${svc.desc}: ${state.status}`);
-      expect(state.status).toContain("result(s) found");
+      expect(state.status).toContain("results found");
       expect(state.resultItems).toBeGreaterThan(0);
 
       // URL should NOT have from/to params
@@ -77,7 +77,7 @@ test.describe("Polled/cached services", () => {
 
     console.log(`URL load: ${state.status}`);
     expect(state.dateRangeVisible).toBe(false);
-    expect(state.status).toContain("result(s) found");
+    expect(state.status).toContain("results found");
     expect(state.resultItems).toBeGreaterThan(0);
   });
 });

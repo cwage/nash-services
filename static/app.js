@@ -90,20 +90,24 @@ const dateToInput = document.getElementById("date-to");
 const searchBtn = document.getElementById("search-btn");
 const statusEl = document.getElementById("status");
 const resultsList = document.getElementById("results-list");
+const emptyState = document.getElementById("empty-state");
 
-// Keep slider and number input in sync, auto-search on change
+// Keep slider and number input in sync, auto-search on change (debounced)
+let _radiusSearchTimeout = null;
+function debouncedRadiusSearch() {
+    clearTimeout(_radiusSearchTimeout);
+    _radiusSearchTimeout = setTimeout(() => {
+        if (serviceSelect.value && addressInput.value.trim()) doSearch();
+    }, 300);
+}
 radiusSlider.addEventListener("input", () => {
     radiusInput.value = radiusSlider.value;
 });
-radiusSlider.addEventListener("change", () => {
-    if (serviceSelect.value && addressInput.value.trim()) doSearch();
-});
+radiusSlider.addEventListener("change", debouncedRadiusSearch);
 radiusInput.addEventListener("input", () => {
     radiusSlider.value = radiusInput.value;
 });
-radiusInput.addEventListener("change", () => {
-    if (serviceSelect.value && addressInput.value.trim()) doSearch();
-});
+radiusInput.addEventListener("change", debouncedRadiusSearch);
 
 // Track which services have date fields (populated on info fetch)
 const servicesWithDates = new Set();
@@ -528,6 +532,7 @@ async function doSearch() {
     if (!service || !address) return;
 
     clearMap(true);
+    emptyState.style.display = "none";
     setStatus("Searching...", "loading");
     searchBtn.disabled = true;
     pushSearchState(service, address, radius, dateFrom, dateTo);
@@ -625,14 +630,27 @@ async function doSearch() {
         }
 
         // Build status message
-        const fetchedLabel = data.total_cached !== undefined
-            ? `${data.total_cached} cached` : `${data.total_fetched} fetched`;
-        let statusMsg = `${data.count} result(s) found (${fetchedLabel})`;
+        const count = data.count;
+        const noun = count === 1 ? "result" : "results";
+        let statusMsg = `${count} ${noun} found`;
         if (data.no_location > 0) {
             statusMsg += ` · ${data.no_location} without location`;
         }
         setStatus(statusMsg);
         resultsList.innerHTML = "";
+
+        // Helpful hint when no results
+        if (markers.length === 0) {
+            const hint = document.createElement("div");
+            hint.className = "empty-results-hint";
+            const radius = parseFloat(radiusInput.value) || 2;
+            let msg = "Try increasing the radius";
+            if (radius < 5) msg += ` (currently ${radius} mi)`;
+            if (servicesWithDates.has(service)) msg += " or widening the date range";
+            msg += ".";
+            hint.textContent = msg;
+            resultsList.appendChild(hint);
+        }
 
         // Legend for polled services
         if (isPolled && markers.length > 0) {
@@ -753,14 +771,11 @@ function filterResultsByViewport() {
         }
     }
 
-    // Status: show locations count (matches dots on map)
+    // Status: show how many are visible vs total
     const total = currentResults.length;
     const base = statusEl.dataset.baseStatus || statusEl.textContent;
-    const dots = locationGroups.size;
     if (totalInView < total) {
-        statusEl.textContent = dots < totalInView
-            ? `Showing ${dots} locations (${totalInView} records) in view`
-            : `Showing ${totalInView} in view`;
+        statusEl.textContent = `Showing ${totalInView} of ${total} results in view`;
     } else {
         statusEl.textContent = base;
     }
@@ -924,6 +939,24 @@ document.addEventListener("keydown", (e) => {
         closeAboutModal();
     }
 });
+
+// Suggested dataset buttons
+for (const btn of document.querySelectorAll(".suggested-btn")) {
+    btn.addEventListener("click", () => {
+        const service = btn.dataset.service;
+        // Wait for services to be loaded if needed
+        const trySelect = () => {
+            if (allServices.find(s => s.name === service)) {
+                selectService(service);
+                updateDateRange();
+                addressInput.focus();
+            } else {
+                setTimeout(trySelect, 100);
+            }
+        };
+        trySelect();
+    });
+}
 
 // Init
 loadServices();

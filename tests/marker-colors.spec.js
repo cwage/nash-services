@@ -19,7 +19,7 @@ test.describe("Marker and cluster color consistency", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("result(s) found");
+      return s && s.includes("results found");
     }, { timeout: 30000 });
 
     // Check individual marker colors — should be red (#e74c3c)
@@ -62,7 +62,7 @@ test.describe("Marker and cluster color consistency", () => {
 
     await page.waitForFunction(() => {
       const s = document.getElementById("status").textContent;
-      return s && s.includes("result(s) found");
+      return s && s.includes("results found");
     }, { timeout: 30000 });
 
     // Individual markers should use status colors (red/orange/gray)
