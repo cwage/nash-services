@@ -377,14 +377,14 @@ def fetch_records(service_name: str, layer: int = 0, max_records: int = 1000,
 def _get_record_coords(record: dict, meta: ServiceMeta) -> Optional[Coordinates]:
     """Extract or geocode coordinates for a record."""
     # First try geometry from the service
-    if meta.has_geometry and record.get("_geom_x") and record.get("_geom_y"):
+    if meta.has_geometry and record.get("_geom_x") is not None and record.get("_geom_y") is not None:
         return Coordinates(lat=record["_geom_y"], lng=record["_geom_x"])
 
     # Try explicit lat/lng fields
     if meta.lat_field and meta.lng_field:
         lat = record.get(meta.lat_field)
         lng = record.get(meta.lng_field)
-        if lat and lng:
+        if lat is not None and lng is not None:
             try:
                 return Coordinates(lat=float(lat), lng=float(lng))
             except (ValueError, TypeError):
