@@ -631,8 +631,11 @@ async function doSearch() {
             markers.push({ marker, record });
         }
 
-        // Fit map to radius circle and markers
-        if (markers.length > 0) {
+        // Fit map to radius circle and markers (skip if restoring a saved viewport)
+        if (_restoreViewport) {
+            map.setView([_restoreViewport.lat, _restoreViewport.lng], _restoreViewport.zoom);
+            _restoreViewport = null;
+        } else if (markers.length > 0) {
             const group = L.featureGroup([radiusCircle, ...markers.map(m => m.marker)]);
             map.fitBounds(group.getBounds().pad(0.1));
         } else {
@@ -832,8 +835,34 @@ function pushSearchState(service, address, radius, dateFrom, dateTo) {
     const params = new URLSearchParams({ service, address, radius });
     if (dateFrom) params.set("from", dateFrom);
     if (dateTo) params.set("to", dateTo);
+    // Preserve current viewport if present
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    params.set("lat", center.lat.toFixed(5));
+    params.set("lng", center.lng.toFixed(5));
+    params.set("z", zoom);
     history.pushState(null, "", `?${params}`);
 }
+
+// Update URL with current viewport on pan/zoom (debounced, replaceState only)
+let _viewportUpdateTimeout = null;
+function updateViewportInURL() {
+    clearTimeout(_viewportUpdateTimeout);
+    _viewportUpdateTimeout = setTimeout(() => {
+        const params = new URLSearchParams(window.location.search);
+        // Only update viewport if there's already a search in the URL
+        if (!params.get("service")) return;
+        const center = map.getCenter();
+        params.set("lat", center.lat.toFixed(5));
+        params.set("lng", center.lng.toFixed(5));
+        params.set("z", map.getZoom());
+        history.replaceState(null, "", `?${params}`);
+    }, 300);
+}
+map.on("moveend", updateViewportInURL);
+
+// When loading from a URL with viewport params, skip fitBounds in doSearch
+let _restoreViewport = null;
 
 function loadSearchFromURL() {
     const params = new URLSearchParams(window.location.search);
@@ -842,8 +871,16 @@ function loadSearchFromURL() {
     const radius = params.get("radius");
     const dateFrom = params.get("from");
     const dateTo = params.get("to");
+    const lat = params.get("lat");
+    const lng = params.get("lng");
+    const zoom = params.get("z");
 
     if (service && address) {
+        // If URL has viewport, restore it after search instead of auto-fitting
+        if (lat && lng && zoom) {
+            _restoreViewport = { lat: parseFloat(lat), lng: parseFloat(lng), zoom: parseInt(zoom) };
+        }
+
         // Wait for services to load, then set values and search
         const waitForServices = setInterval(() => {
             if (allServices.find(s => s.name === service)) {
