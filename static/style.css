@@ -121,9 +121,9 @@ select, input[type="text"], input[type="number"] {
 }
 
 .service-dropdown .dropdown-info-btn {
-    color: #666;
+    color: #d4a054;
     font-size: 0.8em;
-    border: 1px solid #444;
+    border: 1px solid #a07830;
     border-radius: 50%;
     width: 1.4em;
     height: 1.4em;
@@ -135,8 +135,8 @@ select, input[type="text"], input[type="number"] {
 }
 
 .service-dropdown .dropdown-info-btn:hover {
-    color: #4a9eff;
-    border-color: #4a9eff;
+    color: #f0c070;
+    border-color: #f0c070;
 }
 
 .service-dropdown .service-option:hover {
@@ -161,11 +161,11 @@ select, input[type="text"], input[type="number"] {
 }
 
 #service-selected .dataset-info-btn {
-    color: #888;
+    color: #d4a054;
     margin-left: 6px;
     cursor: pointer;
     font-size: 0.85em;
-    border: 1px solid #555;
+    border: 1px solid #a07830;
     border-radius: 50%;
     width: 1.3em;
     height: 1.3em;
@@ -177,8 +177,8 @@ select, input[type="text"], input[type="number"] {
 }
 
 #service-selected .dataset-info-btn:hover {
-    color: #4a9eff;
-    border-color: #4a9eff;
+    color: #f0c070;
+    border-color: #f0c070;
 }
 
 select {
