@@ -903,7 +903,7 @@ let aboutPreviousFocus = null;
 function openAboutModal() {
     aboutPreviousFocus = document.activeElement;
     aboutOverlay.classList.add("open");
-    aboutCloseBtn.focus();
+    setTimeout(() => aboutCloseBtn.focus(), 0);
 }
 
 function closeAboutModal() {
