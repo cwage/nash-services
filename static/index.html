@@ -89,19 +89,19 @@
                 <p>Nash Services is a proximity search tool for Nashville's public data. Pick a dataset, enter an address, and see what's nearby on the map.</p>
 
                 <h3>Where does the data come from?</h3>
-                <p>All data comes from <a href="https://data.nashville.gov/" target="_blank">Nashville Open Data</a> via the Metro Nashville ArcGIS FeatureServer. There are 300+ datasets available &mdash; police dispatch, 311 requests, building permits, road closures, fire incidents, short-term rental permits, and more. We scraped every published feed and dropped the ones that had no useful geographic data.</p>
+                <p>All data comes from <a href="https://data.nashville.gov/" target="_blank" rel="noopener noreferrer">Nashville Open Data</a> via the Metro Nashville ArcGIS FeatureServer. There are 300+ datasets available &mdash; police dispatch, 311 requests, building permits, road closures, fire incidents, short-term rental permits, and more. We scraped every published feed and dropped the ones that had no useful geographic data.</p>
 
                 <h3>What do the status colors mean?</h3>
                 <p>Some datasets (like active police dispatch) are polled regularly, so records have a freshness status:</p>
                 <ul>
-                    <li><span class="legend-dot" style="background:#e74c3c;display:inline-block;vertical-align:middle;"></span> <strong>Live</strong> &mdash; currently active; still present in the latest poll of the source feed</li>
-                    <li><span class="legend-dot" style="background:#f39c12;display:inline-block;vertical-align:middle;"></span> <strong>Recent</strong> &mdash; disappeared from the feed within the last few hours (e.g. a dispatch call that was cleared)</li>
-                    <li><span class="legend-dot" style="background:#95a5a6;display:inline-block;vertical-align:middle;"></span> <strong>Older</strong> &mdash; no longer in the live feed; kept in the local cache for historical context</li>
+                    <li><span class="legend-dot" style="background:#e74c3c;"></span> <strong>Live</strong> &mdash; currently active; still present in the latest poll of the source feed</li>
+                    <li><span class="legend-dot" style="background:#f39c12;"></span> <strong>Recent</strong> &mdash; disappeared from the feed within the last few hours (e.g. a dispatch call that was cleared)</li>
+                    <li><span class="legend-dot" style="background:#95a5a6;"></span> <strong>Older</strong> &mdash; no longer in the live feed; kept in the local cache for historical context</li>
                 </ul>
                 <p>Most datasets aren't polled and don't show these statuses &mdash; they just return the current snapshot from ArcGIS.</p>
 
                 <h3>About</h3>
-                <p>Built by <a href="https://quietlife.net" target="_blank">Chris Wage</a>. The source code is available on <a href="https://github.com/cwage/nash-services" target="_blank">GitHub</a> under the MIT license.</p>
+                <p>Built by <a href="https://quietlife.net" target="_blank" rel="noopener noreferrer">Chris Wage</a>. The source code is available on <a href="https://github.com/cwage/nash-services" target="_blank" rel="noopener noreferrer">GitHub</a> under the MIT license.</p>
             </div>
             <div class="about-modal-actions">
                 <button type="button" id="about-close">Close</button>

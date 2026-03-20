@@ -897,22 +897,31 @@ bugForm.addEventListener("submit", async (e) => {
 
 // --- About modal ---
 const aboutOverlay = document.getElementById("about-modal-overlay");
+const aboutCloseBtn = document.getElementById("about-close");
+let aboutPreviousFocus = null;
 
-document.getElementById("about-open").addEventListener("click", () => {
+function openAboutModal() {
+    aboutPreviousFocus = document.activeElement;
     aboutOverlay.classList.add("open");
-});
+    aboutCloseBtn.focus();
+}
 
-document.getElementById("about-close").addEventListener("click", () => {
+function closeAboutModal() {
     aboutOverlay.classList.remove("open");
-});
+    if (aboutPreviousFocus) aboutPreviousFocus.focus();
+    aboutPreviousFocus = null;
+}
+
+document.getElementById("about-open").addEventListener("click", openAboutModal);
+aboutCloseBtn.addEventListener("click", closeAboutModal);
 
 aboutOverlay.addEventListener("click", (e) => {
-    if (e.target === aboutOverlay) aboutOverlay.classList.remove("open");
+    if (e.target === aboutOverlay) closeAboutModal();
 });
 
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && aboutOverlay.classList.contains("open")) {
-        aboutOverlay.classList.remove("open");
+        closeAboutModal();
     }
 });
 

@@ -689,6 +689,11 @@ button#search-btn:disabled {
     padding: 3px 0;
 }
 
+.about-content .legend-dot {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .about-content a {
     color: #4a9eff;
     text-decoration: none;
