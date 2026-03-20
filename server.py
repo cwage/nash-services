@@ -72,7 +72,11 @@ def shorten():
         return jsonify({"error": "Invalid query string"}), 400
     if len(qs) > 2000:
         return jsonify({"error": "Query string too long"}), 400
-    sid = create_short_url(qs)
+    try:
+        sid = create_short_url(qs)
+    except Exception:
+        logging.exception("Failed to create short URL")
+        return jsonify({"error": "Failed to create short URL"}), 500
     return jsonify({"id": sid, "url": f"/s/{sid}"})
 
 

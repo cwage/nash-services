@@ -32,6 +32,8 @@ test.describe("Short URL round-trip", () => {
 
     const resp1 = await request.post(`${BASE}/s`, { data: { query_string: qs } });
     const resp2 = await request.post(`${BASE}/s`, { data: { query_string: qs } });
+    expect(resp1.ok()).toBe(true);
+    expect(resp2.ok()).toBe(true);
     const data1 = await resp1.json();
     const data2 = await resp2.json();
 
