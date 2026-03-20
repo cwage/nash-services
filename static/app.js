@@ -55,6 +55,7 @@ let searchMarker = null;
 
 // Current result set for viewport filtering
 let currentResults = []; // [{ marker, record, item }]
+let currentUnmapped = []; // [{ record, isPolled }]
 let lastSearchAddr = "";
 let unmappedCount = 0;
 
@@ -479,6 +480,26 @@ function buildPopupContent(record, isPolled) {
     return html;
 }
 
+// Extract a unique record ID from standard ArcGIS ID fields
+const RECORD_ID_FIELDS = ["OBJECTID", "ObjectId", "FID", "GlobalID"];
+function getRecordId(record) {
+    for (const field of RECORD_ID_FIELDS) {
+        if (record[field] != null) return String(record[field]);
+    }
+    return null;
+}
+
+// Update URL with selected record ID (or clear it)
+function setRecordInURL(recordId) {
+    const params = new URLSearchParams(window.location.search);
+    if (recordId) {
+        params.set("record", recordId);
+    } else {
+        params.delete("record");
+    }
+    history.replaceState(null, "", `?${params}`);
+}
+
 function summarizeRecord(record) {
     // Pick the first 2-3 non-null, non-internal, non-ID fields for a summary line
     const skip = new Set(["OBJECTID", "ObjectId", "GlobalID", "FID", "Shape__Area", "Shape__Length"]);
@@ -529,6 +550,16 @@ function buildSparkline(histogram) {
     container.appendChild(labels);
 
     return container;
+}
+
+// Zoom to uncluster a marker (if using MarkerCluster) and open its popup
+function showMarkerPopup(marker) {
+    if (markersLayerIsClustered) {
+        markersLayer.zoomToShowLayer(marker, () => marker.openPopup());
+    } else {
+        map.setView(marker.getLatLng(), Math.max(map.getZoom(), 16));
+        marker.openPopup();
+    }
 }
 
 async function doSearch() {
@@ -627,6 +658,13 @@ async function doSearch() {
             // Popup on click (full details)
             marker.bindPopup(buildPopupContent(record, isPolled), { maxWidth: 350, maxHeight: 320 });
 
+            // Update URL when popup opens/closes for deep-linking
+            marker.on("popupopen", () => {
+                const id = getRecordId(record);
+                if (id) setRecordInURL(id);
+            });
+            marker.on("popupclose", () => setRecordInURL(null));
+
             marker.addTo(markersLayer);
             markers.push({ marker, record });
         }
@@ -720,8 +758,7 @@ async function doSearch() {
             }
 
             item.addEventListener("click", () => {
-                map.setView([record._lat, record._lng], 16);
-                marker.openPopup();
+                showMarkerPopup(marker);
             });
 
             resultsList.appendChild(item);
@@ -731,7 +768,9 @@ async function doSearch() {
         // Add unmapped records (no lat/lng) to sidebar
         const unmapped = data.records.filter(r => r._lat == null || r._lng == null);
         unmappedCount = unmapped.length;
+        currentUnmapped = [];
         for (const record of unmapped) {
+            currentUnmapped.push({ record, isPolled });
             const item = document.createElement("div");
             item.className = "result-item";
 
@@ -762,6 +801,23 @@ async function doSearch() {
         }
 
         filterResultsByViewport();
+
+        // Deep-link: if URL has a record param, open that record's popup/modal
+        if (_restoreRecord) {
+            const targetId = _restoreRecord;
+            _restoreRecord = null;
+            // Try mapped records first
+            const mapped = currentResults.find(e => getRecordId(e.record) === targetId);
+            if (mapped) {
+                showMarkerPopup(mapped.marker);
+            } else {
+                // Try unmapped records
+                const unmappedEntry = currentUnmapped.find(e => getRecordId(e.record) === targetId);
+                if (unmappedEntry) {
+                    openRecordModal(unmappedEntry.record, unmappedEntry.isPolled);
+                }
+            }
+        }
     } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
     } finally {
@@ -863,6 +919,8 @@ map.on("moveend", updateViewportInURL);
 
 // When loading from a URL with viewport params, skip fitBounds in doSearch
 let _restoreViewport = null;
+// When loading from a URL with a record param, open that record after search
+let _restoreRecord = null;
 
 function loadSearchFromURL() {
     const params = new URLSearchParams(window.location.search);
@@ -874,6 +932,7 @@ function loadSearchFromURL() {
     const lat = params.get("lat");
     const lng = params.get("lng");
     const zoom = params.get("z");
+    const record = params.get("record");
 
     if (service && address) {
         // If URL has viewport, restore it after search instead of auto-fitting
@@ -884,6 +943,11 @@ function loadSearchFromURL() {
             if (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) && Number.isFinite(parsedZoom)) {
                 _restoreViewport = { lat: parsedLat, lng: parsedLng, zoom: parsedZoom };
             }
+        }
+
+        // If URL has a record ID, open it after search completes
+        if (record) {
+            _restoreRecord = record;
         }
 
         // Wait for services to load, then set values and search
@@ -1041,12 +1105,15 @@ function openRecordModal(record, isPolled) {
     recordModalBody.innerHTML = notice + buildPopupContent(record, isPolled);
     recordOverlay.classList.add("open");
     setTimeout(() => recordModalClose.focus(), 0);
+    const id = getRecordId(record);
+    if (id) setRecordInURL(id);
 }
 
 function closeRecordModal() {
     recordOverlay.classList.remove("open");
     if (recordPreviousFocus) recordPreviousFocus.focus();
     recordPreviousFocus = null;
+    setRecordInURL(null);
 }
 
 recordModalClose.addEventListener("click", closeRecordModal);
