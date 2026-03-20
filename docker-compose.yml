@@ -18,6 +18,7 @@ services:
       - FLY_API_TOKEN=${FLY_API_TOKEN:-}
     volumes:
       - .:/app
+      - fly-config:/root/.fly
     working_dir: /app
     profiles:
       - fly
@@ -33,4 +34,7 @@ services:
       - BASE_URL=http://api:5000
     entrypoint: ["tail", "-f", "/dev/null"]
     user: "${UID:-1000}:${GID:-1000}"
+
+volumes:
+  fly-config:
 
