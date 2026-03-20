@@ -67,4 +67,23 @@ test.describe("Short URL round-trip", () => {
     });
     expect(resp.status()).toBe(400);
   });
+
+  test("invalid short ID format returns 404 without hitting DB", async ({ request }) => {
+    // Too long
+    const resp1 = await request.get(`${BASE}/s/ABCDEFGHIJ`, { maxRedirects: 0 });
+    expect(resp1.status()).toBe(404);
+    // Special characters
+    const resp2 = await request.get(`${BASE}/s/ab-c_d`, { maxRedirects: 0 });
+    expect(resp2.status()).toBe(404);
+    // Too short
+    const resp3 = await request.get(`${BASE}/s/ab`, { maxRedirects: 0 });
+    expect(resp3.status()).toBe(404);
+  });
+
+  test("query_string with CR/LF is rejected", async ({ request }) => {
+    const resp = await request.post(`${BASE}/s`, {
+      data: { query_string: "service=test\r\nEvil-Header: injected" },
+    });
+    expect(resp.status()).toBe(400);
+  });
 });

@@ -4,6 +4,7 @@ Nash Services - Flask server for generic Nashville Open Data proximity search.
 
 import logging
 import os
+import re
 import time
 from datetime import datetime, timezone
 from functools import partial
@@ -16,7 +17,7 @@ from alltheapis_service import (
     get_catalog_entry,
 )
 from dispatch_cache import ServicePoller, get_cached_events, get_cache_stats
-from short_urls import create_short_url, resolve_short_url
+from short_urls import create_short_url, resolve_short_url, prune_expired as prune_short_urls
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,13 +58,18 @@ def favicon():
     return send_from_directory("static", "favicon.svg", mimetype="image/svg+xml")
 
 
+_SHORT_ID_RE = re.compile(r"^[A-Za-z0-9]{6}$")
+
+
 @app.route("/s", methods=["POST"])
 def shorten():
     """Create a short URL from a query string."""
     data = request.get_json(silent=True)
     if not data or not data.get("query_string", "").strip():
         return jsonify({"error": "Missing query_string"}), 400
-    qs = data["query_string"].strip()
+    qs = data["query_string"].strip().lstrip("?")
+    if "\r" in qs or "\n" in qs or "#" in qs:
+        return jsonify({"error": "Invalid query string"}), 400
     if len(qs) > 2000:
         return jsonify({"error": "Query string too long"}), 400
     sid = create_short_url(qs)
@@ -73,6 +79,8 @@ def shorten():
 @app.route("/s/<sid>")
 def resolve(sid):
     """Redirect a short URL to the full search."""
+    if not _SHORT_ID_RE.match(sid):
+        return jsonify({"error": "Short URL not found"}), 404
     qs = resolve_short_url(sid)
     if qs is None:
         return jsonify({"error": "Short URL not found"}), 404
@@ -266,4 +274,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=5000)
     args = parser.parse_args()
     poller.start()
+    pruned = prune_short_urls()
+    if pruned > 0:
+        logging.info(f"Pruned {pruned} expired short URLs")
     app.run(host=args.host, port=args.port, debug=False)

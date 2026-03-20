@@ -1258,10 +1258,12 @@ for (const btn of document.querySelectorAll(".suggested-btn")) {
 const shareBtn = document.getElementById("share-btn");
 const toastEl = document.getElementById("toast");
 
+let _toastTimeout = null;
 function showToast(msg, duration = 2500) {
     toastEl.textContent = msg;
     toastEl.classList.add("visible");
-    setTimeout(() => toastEl.classList.remove("visible"), duration);
+    clearTimeout(_toastTimeout);
+    _toastTimeout = setTimeout(() => toastEl.classList.remove("visible"), duration);
 }
 
 shareBtn.addEventListener("click", async () => {
