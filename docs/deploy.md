@@ -7,9 +7,16 @@ The public instance runs on [Fly.io](https://fly.io) with a persistent SQLite vo
 ## Prerequisites
 
 - Docker and Docker Compose
-- A `FLY_API_TOKEN` in your `.env` file (generate with `fly tokens create deploy -x 999999h`)
+- A `FLY_API_TOKEN` in your `.env` file (generate a deploy token with `fly tokens create deploy` and rotate periodically)
 
 All `flyctl` commands run via Docker Compose, no local install needed.
+
+## First-Time Setup
+
+1. Create the app: `docker compose run --rm fly launch`
+2. Create the persistent volume: `docker compose run --rm fly volumes create nash_cache --region iad --size 1`
+3. Set secrets: `docker compose run --rm fly secrets set GITHUB_TOKEN=...`
+4. Deploy: `docker compose run --rm fly deploy`
 
 ## Local Development
 
