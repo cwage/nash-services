@@ -24,6 +24,20 @@ logging.basicConfig(
 
 app = Flask(__name__, static_folder="static")
 
+
+class FlyClientIP:
+    """Use Fly-Client-IP header for REMOTE_ADDR when behind Fly.io proxy."""
+    def __init__(self, app):
+        self.app = app
+    def __call__(self, environ, start_response):
+        client_ip = environ.get("HTTP_FLY_CLIENT_IP")
+        if client_ip:
+            environ["REMOTE_ADDR"] = client_ip
+        return self.app(environ, start_response)
+
+
+app.wsgi_app = FlyClientIP(app.wsgi_app)
+
 # Build poller with all poll: true services
 poller = ServicePoller()
 _pollable_names = set()
