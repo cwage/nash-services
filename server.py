@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timezone
 from functools import partial
 from flask import Flask, request, jsonify, send_from_directory
+from werkzeug.middleware.proxy_fix import ProxyFix
 import requests as http_requests
 from alltheapis_service import (
     find_nearby, fetch_records, get_service_meta,
@@ -23,6 +24,7 @@ logging.basicConfig(
 )
 
 app = Flask(__name__, static_folder="static")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # Build poller with all poll: true services
 poller = ServicePoller()
