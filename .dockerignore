@@ -1,0 +1,11 @@
+# flyctl launch added from .gitignore
+**/__pycache__
+**/*.pyc
+**/data
+**/.env
+
+# flyctl launch added from tests/.gitignore
+tests/**/node_modules
+tests/**/test-results
+tests/**/*.png
+tests/**/audit-results.json

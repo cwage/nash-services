@@ -4,6 +4,16 @@ Generic proximity search tool for Nashville Open Data (ArcGIS). Pass any service
 
 Works with all 300+ Nashville ArcGIS FeatureServer datasets — police dispatch, 311 requests, road closures, fire incidents, short-term rental permits, and more.
 
+## Docker Image
+
+Pre-built images are published to `ghcr.io/cwage/nash-services` on an as-needed basis. You can run the latest release with:
+
+```bash
+docker run -p 5000:5000 ghcr.io/cwage/nash-services:latest
+```
+
+Or pin to a specific version (e.g. `ghcr.io/cwage/nash-services:0.10.2`). See [Packages](https://github.com/cwage/nash-services/pkgs/container/nash-services) for available tags.
+
 ## Requirements
 
 - Docker & Docker Compose
@@ -12,7 +22,7 @@ Works with all 300+ Nashville ArcGIS FeatureServer datasets — police dispatch,
 ## Quick Start
 
 ```bash
-# Start the API
+# Start the API (builds from source)
 docker compose up -d
 
 # Search for a service

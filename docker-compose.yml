@@ -12,6 +12,16 @@ services:
       - ./data:/data
     user: "${UID:-1000}:${GID:-1000}"
 
+  fly:
+    image: flyio/flyctl
+    environment:
+      - FLY_API_TOKEN=${FLY_API_TOKEN:-}
+    volumes:
+      - .:/app
+    working_dir: /app
+    profiles:
+      - fly
+
   playwright:
     image: mcr.microsoft.com/playwright:v1.50.0-noble
     depends_on:
