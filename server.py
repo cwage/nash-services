@@ -5,6 +5,7 @@ Nash Services - Flask server for generic Nashville Open Data proximity search.
 import logging
 import os
 import time
+from datetime import datetime, timezone
 from functools import partial
 from flask import Flask, request, jsonify, send_from_directory
 import requests as http_requests
@@ -162,7 +163,14 @@ def report_bug():
     if not GITHUB_TOKEN:
         return jsonify({"error": "Bug reporting is not configured"}), 503
 
-    # Rate limit
+    data = request.get_json(silent=True)
+    if not data or not data.get("description", "").strip():
+        return jsonify({"error": "Description is required"}), 400
+
+    description = data["description"].strip()[:2000]
+    debug_context = data.get("debug_context", "")[:5000]
+
+    # Rate limit (checked after validation so bad requests don't burn cooldown)
     ip = request.remote_addr
     now = time.time()
     last = _bug_report_timestamps.get(ip, 0)
@@ -170,19 +178,16 @@ def report_bug():
         return jsonify({"error": "Please wait a minute before submitting another report"}), 429
     _bug_report_timestamps[ip] = now
 
-    data = request.get_json()
-    if not data or not data.get("description", "").strip():
-        return jsonify({"error": "Description is required"}), 400
-
-    description = data["description"].strip()
-    debug_context = data.get("debug_context", "")
+    # Sanitize @-mentions so they don't ping GitHub users
+    description = description.replace("@", "@ ")
 
     # Add server-side debug info
     user_agent = request.headers.get("User-Agent", "unknown")
-    server_context = f"Client IP: {ip}\nUser-Agent: {user_agent}\nTimestamp: {time.strftime('%Y-%m-%d %H:%M:%S %Z')}"
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    server_context = f"Client IP: {ip}\nUser-Agent: {user_agent}\nTimestamp: {timestamp}"
 
     body = (
-        f"## User Report\n\n{description}\n\n"
+        f"## User Report\n\n```\n{description}\n```\n\n"
         f"## Debug Context\n\n```\n{debug_context}\n```\n\n"
         f"## Server Context\n\n```\n{server_context}\n```"
     )

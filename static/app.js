@@ -836,8 +836,7 @@ function getDebugContext() {
     return parts.join("\n");
 }
 
-document.getElementById("bug-report-open").addEventListener("click", (e) => {
-    e.preventDefault();
+document.getElementById("bug-report-open").addEventListener("click", () => {
     bugDescription.value = "";
     bugStatusEl.textContent = "";
     bugStatusEl.className = "bug-status";
@@ -853,6 +852,12 @@ document.getElementById("bug-cancel").addEventListener("click", () => {
 
 bugOverlay.addEventListener("click", (e) => {
     if (e.target === bugOverlay) bugOverlay.classList.remove("open");
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && bugOverlay.classList.contains("open")) {
+        bugOverlay.classList.remove("open");
+    }
 });
 
 bugForm.addEventListener("submit", async (e) => {

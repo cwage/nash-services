@@ -57,15 +57,15 @@
         <div id="results-list"></div>
 
         <div id="bug-report-link">
-            <a href="#" id="bug-report-open">Found a problem? Let us know</a>
+            <button type="button" id="bug-report-open">Found a problem? Let us know</button>
         </div>
     </div>
 
     <!-- Bug report modal -->
     <div id="bug-modal-overlay" class="bug-modal-overlay">
-        <div class="bug-modal">
-            <h2>Report a Problem</h2>
-            <p class="bug-modal-desc">Describe what went wrong and we'll look into it. Your current search details will be included automatically.</p>
+        <div class="bug-modal" role="dialog" aria-modal="true" aria-labelledby="bug-modal-title" aria-describedby="bug-modal-description">
+            <h2 id="bug-modal-title">Report a Problem</h2>
+            <p id="bug-modal-description" class="bug-modal-desc">Describe what went wrong and we'll look into it. Your current search details will be included automatically.</p>
             <form id="bug-report-form">
                 <label for="bug-description">What happened?</label>
                 <textarea id="bug-description" rows="4" placeholder="e.g. I searched for an address and got no results, but I know there should be data here..." required></textarea>

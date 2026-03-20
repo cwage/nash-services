@@ -465,18 +465,19 @@ button#search-btn:disabled {
     text-align: center;
 }
 
-#bug-report-link a {
+#bug-report-link button {
     color: #4a9eff;
     font-size: 0.85em;
-    text-decoration: none;
+    background: none;
     padding: 8px 16px;
     border: 1px solid #333;
     border-radius: 4px;
-    display: inline-block;
+    cursor: pointer;
+    font-family: inherit;
     transition: background 0.15s, border-color 0.15s;
 }
 
-#bug-report-link a:hover {
+#bug-report-link button:hover {
     background: #16213e;
     border-color: #4a9eff;
 }
