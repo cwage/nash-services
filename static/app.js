@@ -895,6 +895,36 @@ bugForm.addEventListener("submit", async (e) => {
     }
 });
 
+// --- About modal ---
+const aboutOverlay = document.getElementById("about-modal-overlay");
+const aboutCloseBtn = document.getElementById("about-close");
+let aboutPreviousFocus = null;
+
+function openAboutModal() {
+    aboutPreviousFocus = document.activeElement;
+    aboutOverlay.classList.add("open");
+    setTimeout(() => aboutCloseBtn.focus(), 0);
+}
+
+function closeAboutModal() {
+    aboutOverlay.classList.remove("open");
+    if (aboutPreviousFocus) aboutPreviousFocus.focus();
+    aboutPreviousFocus = null;
+}
+
+document.getElementById("about-open").addEventListener("click", openAboutModal);
+aboutCloseBtn.addEventListener("click", closeAboutModal);
+
+aboutOverlay.addEventListener("click", (e) => {
+    if (e.target === aboutOverlay) closeAboutModal();
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && aboutOverlay.classList.contains("open")) {
+        closeAboutModal();
+    }
+});
+
 // Init
 loadServices();
 loadSearchFromURL();
