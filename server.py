@@ -37,6 +37,11 @@ def index():
     return send_from_directory("static", "index.html")
 
 
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory("static", "favicon.svg", mimetype="image/svg+xml")
+
+
 @app.route("/health")
 def health():
     stats = get_cache_stats()
