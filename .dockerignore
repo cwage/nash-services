@@ -3,6 +3,8 @@
 **/*.pyc
 **/data
 **/.env
+.git
+.github
 
 # flyctl launch added from tests/.gitignore
 tests/**/node_modules

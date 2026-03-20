@@ -13,7 +13,7 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
 
   fly:
-    image: flyio/flyctl
+    image: flyio/flyctl:v0.4.25
     environment:
       - FLY_API_TOKEN=${FLY_API_TOKEN:-}
     volumes:
