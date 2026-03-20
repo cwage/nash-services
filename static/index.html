@@ -55,6 +55,28 @@
         <div id="status" class="status"></div>
 
         <div id="results-list"></div>
+
+        <div id="bug-report-link">
+            <a href="#" id="bug-report-open">Found a problem? Let us know</a>
+        </div>
+    </div>
+
+    <!-- Bug report modal -->
+    <div id="bug-modal-overlay" class="bug-modal-overlay">
+        <div class="bug-modal">
+            <h2>Report a Problem</h2>
+            <p class="bug-modal-desc">Describe what went wrong and we'll look into it. Your current search details will be included automatically.</p>
+            <form id="bug-report-form">
+                <label for="bug-description">What happened?</label>
+                <textarea id="bug-description" rows="4" placeholder="e.g. I searched for an address and got no results, but I know there should be data here..." required></textarea>
+                <div id="bug-debug-preview" class="bug-debug-preview"></div>
+                <div class="bug-modal-actions">
+                    <button type="button" id="bug-cancel">Cancel</button>
+                    <button type="submit" id="bug-submit">Submit Report</button>
+                </div>
+                <div id="bug-status" class="bug-status"></div>
+            </form>
+        </div>
     </div>
 
     <div id="map"></div>

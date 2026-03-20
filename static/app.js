@@ -810,6 +810,86 @@ function loadSearchFromURL() {
 // Handle browser back/forward
 window.addEventListener("popstate", loadSearchFromURL);
 
+// --- Bug report modal ---
+const bugOverlay = document.getElementById("bug-modal-overlay");
+const bugForm = document.getElementById("bug-report-form");
+const bugDescription = document.getElementById("bug-description");
+const bugDebugPreview = document.getElementById("bug-debug-preview");
+const bugStatusEl = document.getElementById("bug-status");
+const bugSubmitBtn = document.getElementById("bug-submit");
+
+function getDebugContext() {
+    const parts = [];
+    const service = serviceSelect.value;
+    const address = addressInput.value.trim();
+    const radius = radiusInput.value;
+    if (service) parts.push(`Dataset: ${service}`);
+    if (address) parts.push(`Address: ${address}`);
+    if (radius) parts.push(`Radius: ${radius} mi`);
+    if (dateFromInput.value) parts.push(`Date from: ${dateFromInput.value}`);
+    if (dateToInput.value) parts.push(`Date to: ${dateToInput.value}`);
+    const status = statusEl.textContent;
+    if (status) parts.push(`Status: ${status}`);
+    parts.push(`Results: ${currentResults.length}`);
+    parts.push(`URL: ${window.location.href}`);
+    parts.push(`Browser: ${navigator.userAgent}`);
+    return parts.join("\n");
+}
+
+document.getElementById("bug-report-open").addEventListener("click", (e) => {
+    e.preventDefault();
+    bugDescription.value = "";
+    bugStatusEl.textContent = "";
+    bugStatusEl.className = "bug-status";
+    bugSubmitBtn.disabled = false;
+    bugDebugPreview.textContent = getDebugContext();
+    bugOverlay.classList.add("open");
+    bugDescription.focus();
+});
+
+document.getElementById("bug-cancel").addEventListener("click", () => {
+    bugOverlay.classList.remove("open");
+});
+
+bugOverlay.addEventListener("click", (e) => {
+    if (e.target === bugOverlay) bugOverlay.classList.remove("open");
+});
+
+bugForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const description = bugDescription.value.trim();
+    if (!description) return;
+
+    bugSubmitBtn.disabled = true;
+    bugStatusEl.textContent = "Submitting...";
+    bugStatusEl.className = "bug-status";
+
+    try {
+        const resp = await fetch(`${API}/report-bug`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                description,
+                debug_context: getDebugContext(),
+            }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            bugStatusEl.textContent = "Thanks! Your report has been submitted.";
+            bugStatusEl.className = "bug-status success";
+            setTimeout(() => bugOverlay.classList.remove("open"), 2000);
+        } else {
+            bugStatusEl.textContent = data.error || "Something went wrong. Please try again.";
+            bugStatusEl.className = "bug-status error";
+            bugSubmitBtn.disabled = false;
+        }
+    } catch (err) {
+        bugStatusEl.textContent = "Could not submit report. Please try again.";
+        bugStatusEl.className = "bug-status error";
+        bugSubmitBtn.disabled = false;
+    }
+});
+
 // Init
 loadServices();
 loadSearchFromURL();
