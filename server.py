@@ -4,10 +4,11 @@ Nash Services - Flask server for generic Nashville Open Data proximity search.
 
 import logging
 import os
+import re
 import time
 from datetime import datetime, timezone
 from functools import partial
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, redirect, send_from_directory
 import requests as http_requests
 from alltheapis_service import (
     find_nearby, fetch_records, get_service_meta,
@@ -16,6 +17,7 @@ from alltheapis_service import (
     get_catalog_entry,
 )
 from dispatch_cache import ServicePoller, get_cached_events, get_cache_stats
+from short_urls import create_short_url, resolve_short_url, prune_expired as prune_short_urls
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,6 +56,39 @@ def index():
 @app.route("/favicon.ico")
 def favicon():
     return send_from_directory("static", "favicon.svg", mimetype="image/svg+xml")
+
+
+_SHORT_ID_RE = re.compile(r"^[A-Za-z0-9]{6}$")
+
+
+@app.route("/s", methods=["POST"])
+def shorten():
+    """Create a short URL from a query string."""
+    data = request.get_json(silent=True)
+    if not data or not data.get("query_string", "").strip():
+        return jsonify({"error": "Missing query_string"}), 400
+    qs = data["query_string"].strip().lstrip("?")
+    if "\r" in qs or "\n" in qs or "#" in qs:
+        return jsonify({"error": "Invalid query string"}), 400
+    if len(qs) > 2000:
+        return jsonify({"error": "Query string too long"}), 400
+    try:
+        sid = create_short_url(qs)
+    except Exception:
+        logging.exception("Failed to create short URL")
+        return jsonify({"error": "Failed to create short URL"}), 500
+    return jsonify({"id": sid, "url": f"/s/{sid}"})
+
+
+@app.route("/s/<sid>")
+def resolve(sid):
+    """Redirect a short URL to the full search."""
+    if not _SHORT_ID_RE.match(sid):
+        return jsonify({"error": "Short URL not found"}), 404
+    qs = resolve_short_url(sid)
+    if qs is None:
+        return jsonify({"error": "Short URL not found"}), 404
+    return redirect(f"/?{qs}")
 
 
 @app.route("/health")
@@ -243,4 +278,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=5000)
     args = parser.parse_args()
     poller.start()
+    pruned = prune_short_urls()
+    if pruned > 0:
+        logging.info(f"Pruned {pruned} expired short URLs")
     app.run(host=args.host, port=args.port, debug=False)

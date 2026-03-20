@@ -10,7 +10,6 @@ services:
       - GITHUB_REPO=${GITHUB_REPO:-cwage/nash-services}
     volumes:
       - ./data:/data
-    user: "${UID:-1000}:${GID:-1000}"
 
   fly:
     image: flyio/flyctl:v0.4.25
@@ -33,7 +32,6 @@ services:
     environment:
       - BASE_URL=http://api:5000
     entrypoint: ["tail", "-f", "/dev/null"]
-    user: "${UID:-1000}:${GID:-1000}"
 
 volumes:
   fly-config:

@@ -255,6 +255,28 @@ button#search-btn:disabled {
     min-height: 1.2em;
 }
 
+.share-btn {
+    position: absolute;
+    top: 10px;
+    left: 60px;
+    z-index: 1000;
+    background: #fff;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    color: #333;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
+    transition: background 0.15s;
+}
+
+.share-btn:hover {
+    background: #f0f0f0;
+}
+
 .status.error {
     color: #ff6b6b;
 }
@@ -1021,6 +1043,29 @@ button#search-btn:disabled {
 
 #dataset-info-close:hover {
     background: #444;
+}
+
+/* Toast notification */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1a1a2e;
+    color: #e0e0e0;
+    border: 1px solid #4a9eff;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    z-index: 20000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
 
 /* Mobile */
