@@ -19,7 +19,6 @@ services:
     volumes:
       - .:/app
     working_dir: /app
-    user: "${UID:-1000}:${GID:-1000}"
     profiles:
       - fly
 
@@ -34,3 +33,4 @@ services:
       - BASE_URL=http://api:5000
     entrypoint: ["tail", "-f", "/dev/null"]
     user: "${UID:-1000}:${GID:-1000}"
+
