@@ -1,6 +1,6 @@
 # Nashville Open Data Catalog Reference
 
-All data comes from **Metro Nashville's ArcGIS FeatureServer**, published through
+All data comes from **Metro Nashville's ArcGIS REST services (primarily FeatureServer)**, published through
 [Nashville Open Data](https://data.nashville.gov/).
 
 - **ArcGIS Org ID:** `HdTo6HJqh92wn4D8`
@@ -227,6 +227,7 @@ They answer "what district is this in?" rather than "what's near me?"
 - `Subdivision_Boundaries` — Subdivision boundary polygons
 - `Voting_Precinct_Boundaries_view` — Voting precinct polygons (we use polling place points)
 - `Zip_Code_Boundaries_Vw` — ZIP code boundary polygons
+- `Steep_Slopes_view` — Steep slope area polygons
 - `Zoning_Vw` / `Zoning_Overlay_Districts_Vw` — Zoning district polygons
 
 ### Line Geometry (streets, greenways, routes)
@@ -244,7 +245,6 @@ Linear features that don't map well to "what's near me?" point queries.
 - `Sidewalks_View` — Sidewalk line segments (we use the ADA point inventory instead)
 - `Snow_Routes_Status_Public_View` — Snow/ice treatment route lines
 - `SpeedReductionZones` — Speed reduction zone line segments
-- `Steep_Slopes_view` — Steep slope polygons
 - `Street_Centerlines_view` / `Street_Classification` — Street centerline geometry
 - `Stormwater_Regulation_Buffers_view` — Stormwater buffer zones
 - `Tornado_Tracks_1952_2021` — Historical tornado path lines
