@@ -84,10 +84,10 @@ def shorten():
 def resolve(sid):
     """Redirect a short URL to the full search."""
     if not _SHORT_ID_RE.match(sid):
-        return jsonify({"error": "Short URL not found"}), 404
+        return redirect("/?link_error=not_found")
     qs = resolve_short_url(sid)
     if qs is None:
-        return jsonify({"error": "Short URL not found"}), 404
+        return redirect("/?link_error=not_found")
     return redirect(f"/?{qs}")
 
 

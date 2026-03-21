@@ -522,11 +522,11 @@ function buildPopupContent(record, isPolled) {
     return html;
 }
 
-// Update URL with selected record index (or clear it)
-function setRecordInURL(index) {
+// Update URL with selected record's event key (or clear it)
+function setRecordInURL(eventKey) {
     const params = new URLSearchParams(window.location.search);
-    if (index != null) {
-        params.set("record", index);
+    if (eventKey != null) {
+        params.set("record", eventKey);
     } else {
         params.delete("record");
     }
@@ -693,8 +693,7 @@ async function doSearch() {
             marker.bindPopup(buildPopupContent(record, isPolled), { maxWidth: 350, maxHeight: 320 });
 
             // Update URL when popup opens/closes for deep-linking
-            const recordIndex = i;
-            marker.on("popupopen", () => setRecordInURL(recordIndex));
+            marker.on("popupopen", () => setRecordInURL(record._event_key));
             marker.on("popupclose", () => setRecordInURL(null));
 
             marker.addTo(markersLayer);
@@ -828,9 +827,8 @@ async function doSearch() {
             badge.title = "Address couldn't be mapped";
             item.appendChild(badge);
 
-            const recordIndex = i;
             item.addEventListener("click", () => {
-                openRecordModal(record, isPolled, recordIndex);
+                openRecordModal(record, isPolled);
             });
 
             resultsList.appendChild(item);
@@ -839,19 +837,22 @@ async function doSearch() {
         filterResultsByViewport();
         document.getElementById("share-btn").style.display = "";
 
-        // Deep-link: if URL has a record param, open that record's popup/modal
+        // Deep-link: if URL has a record event key, open that record's popup/modal
         if (_restoreRecord != null) {
-            const targetIndex = _restoreRecord;
+            const targetKey = _restoreRecord;
             _restoreRecord = null;
             // Try mapped records first
-            const mapped = currentResults.find(e => e.index === targetIndex);
+            const mapped = currentResults.find(e => e.record._event_key === targetKey);
             if (mapped) {
                 showMarkerPopup(mapped.marker);
             } else {
                 // Try unmapped records
-                const unmappedEntry = currentUnmapped.find(e => e.index === targetIndex);
+                const unmappedEntry = currentUnmapped.find(e => e.record._event_key === targetKey);
                 if (unmappedEntry) {
-                    openRecordModal(unmappedEntry.record, unmappedEntry.isPolled, unmappedEntry.index);
+                    openRecordModal(unmappedEntry.record, unmappedEntry.isPolled);
+                } else {
+                    showMapNotice("The linked incident is no longer available");
+                    setRecordInURL(null);
                 }
             }
         }
@@ -956,11 +957,20 @@ map.on("moveend", updateViewportInURL);
 
 // When loading from a URL with viewport params, skip fitBounds in doSearch
 let _restoreViewport = null;
-// When loading from a URL with a record param, open that record after search
+// When loading from a URL with a record event key, open that record after search
 let _restoreRecord = null;
 
 function loadSearchFromURL() {
     const params = new URLSearchParams(window.location.search);
+
+    // Handle expired/invalid shared links
+    if (params.get("link_error") === "not_found") {
+        params.delete("link_error");
+        history.replaceState(null, "", params.toString() ? `?${params}` : "/");
+        showMapNotice("This shared link is no longer valid or has expired");
+        return;
+    }
+
     const service = params.get("service");
     const address = params.get("address");
     const radius = params.get("radius");
@@ -982,12 +992,9 @@ function loadSearchFromURL() {
             }
         }
 
-        // If URL has a record index, open it after search completes
+        // If URL has a record event key, open it after search completes
         if (record) {
-            const parsedIndex = Number.parseInt(record, 10);
-            if (Number.isFinite(parsedIndex) && parsedIndex >= 0) {
-                _restoreRecord = parsedIndex;
-            }
+            _restoreRecord = record;
         }
 
         // Wait for services to load, then set values and search
@@ -1215,7 +1222,7 @@ const recordModalBody = document.getElementById("record-modal-body");
 const recordModalClose = document.getElementById("record-modal-close");
 let recordPreviousFocus = null;
 
-function openRecordModal(record, isPolled, recordIndex) {
+function openRecordModal(record, isPolled) {
     recordPreviousFocus = document.activeElement;
     const addr = record._address || "";
     const notice = addr
@@ -1224,7 +1231,7 @@ function openRecordModal(record, isPolled, recordIndex) {
     recordModalBody.innerHTML = notice + buildPopupContent(record, isPolled);
     recordOverlay.classList.add("open");
     setTimeout(() => recordModalClose.focus(), 0);
-    if (recordIndex != null) setRecordInURL(recordIndex);
+    if (record._event_key) setRecordInURL(record._event_key);
 }
 
 function closeRecordModal() {
@@ -1273,6 +1280,21 @@ function showToast(msg, duration = 2500) {
     clearTimeout(_toastTimeout);
     _toastTimeout = setTimeout(() => toastEl.classList.remove("visible"), duration);
 }
+
+const mapNoticeEl = document.getElementById("map-notice");
+const mapNoticeText = document.getElementById("map-notice-text");
+const mapNoticeDismiss = document.getElementById("map-notice-dismiss");
+
+function showMapNotice(msg) {
+    mapNoticeText.textContent = msg;
+    mapNoticeEl.classList.add("visible");
+}
+
+function hideMapNotice() {
+    mapNoticeEl.classList.remove("visible");
+}
+
+mapNoticeDismiss.addEventListener("click", hideMapNotice);
 
 shareBtn.addEventListener("click", async () => {
     const qs = window.location.search.replace(/^\?/, "");

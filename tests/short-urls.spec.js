@@ -42,11 +42,13 @@ test.describe("Short URL round-trip", () => {
     expect(data1.id).not.toBe(data2.id);
   });
 
-  test("nonexistent short URL returns 404", async ({ request }) => {
+  test("nonexistent short URL redirects with link_error", async ({ request }) => {
     const resp = await request.get(`${BASE}/s/ZZZZZZ`, {
       maxRedirects: 0,
     });
-    expect(resp.status()).toBe(404);
+    expect(resp.status()).toBe(302);
+    const location = resp.headers()["location"];
+    expect(location).toBe("/?link_error=not_found");
   });
 
   test("missing query_string returns 400", async ({ request }) => {
@@ -70,16 +72,19 @@ test.describe("Short URL round-trip", () => {
     expect(resp.status()).toBe(400);
   });
 
-  test("invalid short ID format returns 404 without hitting DB", async ({ request }) => {
+  test("invalid short ID format redirects with link_error", async ({ request }) => {
     // Too long
     const resp1 = await request.get(`${BASE}/s/ABCDEFGHIJ`, { maxRedirects: 0 });
-    expect(resp1.status()).toBe(404);
+    expect(resp1.status()).toBe(302);
+    expect(resp1.headers()["location"]).toBe("/?link_error=not_found");
     // Special characters
     const resp2 = await request.get(`${BASE}/s/ab-c_d`, { maxRedirects: 0 });
-    expect(resp2.status()).toBe(404);
+    expect(resp2.status()).toBe(302);
+    expect(resp2.headers()["location"]).toBe("/?link_error=not_found");
     // Too short
     const resp3 = await request.get(`${BASE}/s/ab`, { maxRedirects: 0 });
-    expect(resp3.status()).toBe(404);
+    expect(resp3.status()).toBe(302);
+    expect(resp3.headers()["location"]).toBe("/?link_error=not_found");
   });
 
   test("query_string with CR/LF is rejected", async ({ request }) => {
