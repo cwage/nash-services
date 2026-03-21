@@ -80,9 +80,11 @@ test.describe("Short URL round-trip", () => {
     // Special characters
     const resp2 = await request.get(`${BASE}/s/ab-c_d`, { maxRedirects: 0 });
     expect(resp2.status()).toBe(302);
+    expect(resp2.headers()["location"]).toBe("/?link_error=not_found");
     // Too short
     const resp3 = await request.get(`${BASE}/s/ab`, { maxRedirects: 0 });
     expect(resp3.status()).toBe(302);
+    expect(resp3.headers()["location"]).toBe("/?link_error=not_found");
   });
 
   test("query_string with CR/LF is rejected", async ({ request }) => {

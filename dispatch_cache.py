@@ -48,7 +48,7 @@ def _get_db() -> sqlite3.Connection:
     return conn
 
 
-def _make_event_key(record: dict) -> str:
+def make_event_key(record: dict) -> str:
     """Build a stable key from the record's non-volatile fields.
 
     ArcGIS active views reuse ObjectId, so we hash the full attribute
@@ -57,7 +57,7 @@ def _make_event_key(record: dict) -> str:
     stable = {k: v for k, v in sorted(record.items())
               if k not in ("LastUpdated", "ObjectId", "OBJECTID", "FID")}
     raw = json.dumps(stable, sort_keys=True, default=str)
-    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+    return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
 
 def upsert_events(service_name: str, records: list[dict]) -> int:
@@ -67,7 +67,7 @@ def upsert_events(service_name: str, records: list[dict]) -> int:
     new_count = 0
     try:
         for record in records:
-            event_key = _make_event_key(record)
+            event_key = make_event_key(record)
             existing = conn.execute(
                 "SELECT event_key FROM cached_events WHERE service_name = ? AND event_key = ?",
                 (service_name, event_key)
