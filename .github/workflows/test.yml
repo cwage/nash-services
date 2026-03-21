@@ -1,4 +1,4 @@
-name: Run Playwright tests
+name: Fast tests (PR)
 
 on:
   pull_request:
@@ -12,25 +12,28 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install test dependencies
-        run: cd tests && npm install
+        run: cd tests && npm ci
 
       - name: Start services
         run: |
           mkdir -p data && chmod 777 data
           docker compose up -d --build
 
-      - name: Wait for API to be healthy with cache populated
+      - name: Wait for API to be ready
         run: |
-          echo "Waiting for API and cache..."
-          for i in $(seq 1 60); do
-            TOTAL=$(docker compose exec -T api python -c "from dispatch_cache import get_cache_stats; print(get_cache_stats()['total'])" 2>&1 || echo "0")
-            if [ "$TOTAL" -gt "0" ] 2>/dev/null; then
-              echo "Cache populated with $TOTAL events"
+          echo "Waiting for API..."
+          for i in $(seq 1 30); do
+            if docker compose exec -T api python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" 2>/dev/null; then
+              echo "API is up"
               break
             fi
-            echo "  attempt $i: $TOTAL"
-            sleep 5
+            echo "  attempt $i"
+            sleep 2
           done
+          if ! docker compose exec -T api python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" 2>/dev/null; then
+            echo "API failed to start"
+            exit 1
+          fi
 
       - name: Run Playwright tests (fast suite)
         run: |

@@ -1,0 +1,60 @@
+name: Live tests (daily)
+
+on:
+  schedule:
+    - cron: "0 10 * * *" # 10:00 UTC — 5AM CDT / 4AM CST
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install test dependencies
+        run: cd tests && npm ci
+
+      - name: Start services
+        run: |
+          mkdir -p data && chmod 777 data
+          docker compose up -d --build
+
+      - name: Wait for API to be healthy with cache populated
+        run: |
+          echo "Waiting for API and cache..."
+          SUCCESS=0
+          for i in $(seq 1 60); do
+            TOTAL=$(docker compose exec -T api python -c "from dispatch_cache import get_cache_stats; print(get_cache_stats()['total'])" 2>&1)
+            if [ $? -ne 0 ]; then
+              echo "API container not responding: $TOTAL"
+              exit 1
+            fi
+            if [ "$TOTAL" -gt "0" ] 2>/dev/null; then
+              echo "Cache populated with $TOTAL events"
+              SUCCESS=1
+              break
+            fi
+            echo "  attempt $i: $TOTAL"
+            sleep 5
+          done
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo "Cache was not populated after waiting"
+            exit 1
+          fi
+
+      - name: Run Playwright tests (live suite)
+        run: |
+          docker compose exec -T -u "$(id -u):$(id -g)" playwright npx playwright test --project=live
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-test-results
+          path: tests/test-results/
+          retention-days: 7
+
+      - name: Stop services
+        if: always()
+        run: docker compose down
