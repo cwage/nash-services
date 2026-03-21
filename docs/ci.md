@@ -27,5 +27,5 @@ The live/audit/full suites need the dispatch cache to have data — wait ~90s af
 ## CI workflows
 
 - **Fast tests (PR)** — `test.yml` runs `--project=fast` on every pull request. No ArcGIS dependency, deterministic.
-- **Live tests (daily)** — `test-live.yml` runs `--project=live` daily at ~4AM Central via cron. Also triggerable manually from the Actions tab via `workflow_dispatch`. GitHub sends email on failure.
+- **Live tests (daily)** — `test-live.yml` runs `--project=live` daily at 10:00 UTC (~5AM CDT / 4AM CST) via cron. Also triggerable manually from the Actions tab via `workflow_dispatch`. GitHub sends email on failure.
 - **Audit** — run manually with `make test-audit` when you want to check for dead feeds.

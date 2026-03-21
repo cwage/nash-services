@@ -2,7 +2,7 @@ name: Live tests (daily)
 
 on:
   schedule:
-    - cron: "0 10 * * *" # 4AM CDT / 5AM CST
+    - cron: "0 10 * * *" # 10:00 UTC — 5AM CDT / 4AM CST
   workflow_dispatch: # allow manual trigger
 
 jobs:
@@ -23,15 +23,21 @@ jobs:
       - name: Wait for API to be healthy with cache populated
         run: |
           echo "Waiting for API and cache..."
+          SUCCESS=0
           for i in $(seq 1 60); do
             TOTAL=$(docker compose exec -T api python -c "from dispatch_cache import get_cache_stats; print(get_cache_stats()['total'])" 2>&1 || echo "0")
             if [ "$TOTAL" -gt "0" ] 2>/dev/null; then
               echo "Cache populated with $TOTAL events"
+              SUCCESS=1
               break
             fi
             echo "  attempt $i: $TOTAL"
             sleep 5
           done
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo "Cache was not populated after waiting"
+            exit 1
+          fi
 
       - name: Run Playwright tests (live suite)
         run: |

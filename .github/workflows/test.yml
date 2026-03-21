@@ -23,13 +23,17 @@ jobs:
         run: |
           echo "Waiting for API..."
           for i in $(seq 1 30); do
-            if docker compose exec -T api python -c "print('ok')" 2>/dev/null; then
+            if docker compose exec -T api curl -sf http://localhost:5000/health > /dev/null 2>&1; then
               echo "API is up"
               break
             fi
             echo "  attempt $i"
             sleep 2
           done
+          if ! docker compose exec -T api curl -sf http://localhost:5000/health > /dev/null 2>&1; then
+            echo "API failed to start"
+            exit 1
+          fi
 
       - name: Run Playwright tests (fast suite)
         run: |
