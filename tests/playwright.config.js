@@ -25,15 +25,31 @@ module.exports = defineConfig({
     {
       name: "fast",
       testMatch: [
-        "core.spec.js",
+        "about-modal.spec.js",
+        "address-highlight.spec.js",
+        "date-nav.spec.js",
+        "dataset-info-modal.spec.js",
+        "dropdown-reopen.spec.js",
         "service-filter.spec.js",
+        "short-urls.spec.js",
+        "timezone.spec.js",
+      ],
+    },
+    {
+      name: "live",
+      testMatch: [
         "auto-search.spec.js",
-        "viewport-filter.spec.js",
+        "core.spec.js",
+        "date-filter-config.spec.js",
         "marker-colors.spec.js",
         "polled-services.spec.js",
-        "date-filter-config.spec.js",
-        "short-urls.spec.js",
+        "record-deeplink.spec.js",
+        "viewport-filter.spec.js",
       ],
+    },
+    {
+      name: "audit",
+      testMatch: ["audit-services.spec.js"],
     },
     {
       name: "full",
