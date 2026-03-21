@@ -26,12 +26,12 @@ test.describe("Record deep-linking", () => {
     await page.waitForSelector(".leaflet-popup-content", { timeout: 5000 });
     await page.waitForTimeout(500);
 
-    // URL should now contain record= param (an index number)
+    // URL should now contain record= param (a hex event key)
     const url = new URL(page.url());
     const recordParam = url.searchParams.get("record");
     expect(recordParam).toBeTruthy();
-    expect(Number.isFinite(Number.parseInt(recordParam, 10))).toBe(true);
-    console.log(`Record index in URL: ${recordParam}`);
+    expect(recordParam).toMatch(/^[0-9a-f]+$/);
+    console.log(`Record event key in URL: ${recordParam}`);
   });
 
   test("closing popup removes record param from URL", async ({ page }) => {
@@ -108,18 +108,27 @@ test.describe("Record deep-linking", () => {
     expect(popup).toBeTruthy();
   });
 
-  test("bogus record param does not crash", async ({ page }) => {
+  test("bogus record param shows toast and does not crash", async ({ page }) => {
     test.setTimeout(60000);
     const errors = [];
     page.on("pageerror", err => errors.push(err.message));
 
-    await page.goto("/?service=Metro_Nashville_Police_Department_Active_Dispatch_Table_view&address=1000+Broadway,+Nashville,+TN&radius=5&record=999999");
+    await page.goto("/?service=Metro_Nashville_Police_Department_Active_Dispatch_Table_view&address=1000+Broadway,+Nashville,+TN&radius=5&record=000000deadbeef00");
     await page.waitForSelector(".result-item", { timeout: 30000 });
     await page.waitForTimeout(2000);
 
-    // No popup should be open (index out of range)
+    // No popup should be open (event key not found)
     const popup = await page.$(".leaflet-popup-content");
     expect(popup).toBeNull();
+
+    // Map notice should inform user the linked incident is gone
+    await page.waitForSelector("#map-notice.visible", { timeout: 5000 });
+    const notice = await page.textContent("#map-notice-text");
+    expect(notice).toContain("no longer available");
+
+    // Record param should be cleared from URL
+    const url = new URL(page.url());
+    expect(url.searchParams.get("record")).toBeNull();
 
     // No JS errors
     expect(errors).toHaveLength(0);
@@ -156,7 +165,8 @@ test.describe("Record deep-linking", () => {
     const url = new URL(page.url());
     const recordParam = url.searchParams.get("record");
     expect(recordParam).toBeTruthy();
-    console.log(`Unmapped record index in URL: ${recordParam}`);
+    expect(recordParam).toMatch(/^[0-9a-f]+$/);
+    console.log(`Unmapped record event key in URL: ${recordParam}`);
 
     // Close the modal
     await page.click("#record-modal-close");

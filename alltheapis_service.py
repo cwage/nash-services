@@ -13,6 +13,7 @@ import yaml
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from dataclasses import dataclass, field
+from dispatch_cache import _make_event_key
 
 ARCGIS_BASE = "https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services"
 CENSUS_GEOCODER_URL = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress"
@@ -538,9 +539,12 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
     nearby = []
     unmapped = []
     for record in records:
+        event_key = _make_event_key(record)
         record_coords = _get_record_coords(record, meta)
         if record_coords is None:
-            unmapped.append(_format_record(record, meta))
+            formatted = _format_record(record, meta)
+            formatted["_event_key"] = event_key
+            unmapped.append(formatted)
             continue
         dist = haversine_miles(query_coords.lat, query_coords.lng,
                                record_coords.lat, record_coords.lng)
@@ -548,7 +552,9 @@ def find_nearby(service_name: str, address: str, radius_miles: float = 2.0,
         # by radius — but we still compute exact haversine and apply the cutoff
         # since ArcGIS uses envelope intersection (slightly larger than circle)
         if dist <= radius_miles:
-            nearby.append(_format_record(record, meta, distance=dist, coords=record_coords))
+            formatted = _format_record(record, meta, distance=dist, coords=record_coords)
+            formatted["_event_key"] = event_key
+            nearby.append(formatted)
 
     nearby.sort(key=lambda r: r.get("_distance_miles", 999))
 
@@ -608,9 +614,11 @@ def find_nearby_cached(service_name: str, address: str, radius_miles: float = 2.
     nearby = []
     unmapped = []
     for evt in cached_events:
+        event_key = evt.get("_event_key") or _make_event_key(evt)
         record_coords = _get_record_coords(evt, meta)
         if record_coords is None:
             formatted = _format_record(evt, meta)
+            formatted["_event_key"] = event_key
             formatted["_status"] = evt.get("_status", "live")
             formatted["_first_seen"] = evt.get("_first_seen")
             formatted["_last_seen"] = evt.get("_last_seen")
@@ -621,6 +629,7 @@ def find_nearby_cached(service_name: str, address: str, radius_miles: float = 2.
                                record_coords.lat, record_coords.lng)
         if dist <= radius_miles:
             formatted = _format_record(evt, meta, distance=dist, coords=record_coords)
+            formatted["_event_key"] = event_key
             formatted["_status"] = evt.get("_status", "live")
             formatted["_first_seen"] = evt.get("_first_seen")
             formatted["_last_seen"] = evt.get("_last_seen")

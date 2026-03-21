@@ -131,6 +131,7 @@ def get_cached_events(service_name: str) -> list[dict]:
             status = "stale"
 
         attrs = json.loads(row["raw_json"])
+        attrs["_event_key"] = row["event_key"]
         attrs["_status"] = status
         attrs["_first_seen"] = row["first_seen"]
         attrs["_last_seen"] = row["last_seen"]
