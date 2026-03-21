@@ -14,13 +14,14 @@ Tests are split into tiers based on external dependencies:
 ## Running locally
 
 ```bash
+cd tests && npm install    # one-time setup
+docker compose up -d --build
+
 make test          # fast suite
 make test-live     # live suite (needs cache populated)
 make test-audit    # feed audit
 make test-full     # everything
 ```
-
-Services must be running (`docker compose up -d --build`).
 
 The live/audit/full suites need the dispatch cache to have data — wait ~90s after startup for the first poll cycle to complete.
 

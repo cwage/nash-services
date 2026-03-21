@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install test dependencies
-        run: cd tests && npm install
+        run: cd tests && npm ci
 
       - name: Start services
         run: |
