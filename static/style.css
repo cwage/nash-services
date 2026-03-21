@@ -1045,7 +1045,7 @@ button#search-btn:disabled {
     background: #444;
 }
 
-/* Map-centered notice (persistent, dismissable) */
+/* Map-centered notice (persistent, dismissible) */
 .map-notice {
     display: none;
     position: absolute;

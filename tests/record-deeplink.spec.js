@@ -108,7 +108,7 @@ test.describe("Record deep-linking", () => {
     expect(popup).toBeTruthy();
   });
 
-  test("bogus record param shows toast and does not crash", async ({ page }) => {
+  test("bogus record param shows map notice and does not crash", async ({ page }) => {
     test.setTimeout(60000);
     const errors = [];
     page.on("pageerror", err => errors.push(err.message));
